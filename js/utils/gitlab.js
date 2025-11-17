@@ -731,6 +731,7 @@ try {
 	}
 } catch (e) {
 	// ignore and fall back to default
+	console.error(`[E][GitLabAPI] Failed to get Repository URL from localStorage: ${e}`);
 }
 
 export default new GitLabAPI(defaultBase);
