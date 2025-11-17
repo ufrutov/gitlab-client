@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GitLab Client</title>
+
+		<script src="https://cdn.tailwindcss.com"></script>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+		/>
+		<script src="./js/tailwind.theme.js"></script>
+		<style>
+			* {
+				border-color: var(--border);
+			}
+			.sidebar {
+				transition: width 0.3s ease;
+			}
+			.sidebar.collapsed {
+				width: 4rem;
+			}
+			.sidebar:not(.collapsed) {
+				width: 16rem;
+			}
+			.sidebar-label {
+				transition: opacity 0.2s ease;
+			}
+			.sidebar.collapsed .sidebar-label {
+				opacity: 0;
+				width: 0;
+				overflow: hidden;
+			}
+			.sidebar.collapsed .sidebar-title {
+				justify-content: center;
+			}
+		</style>
+	</head>
+
+	<body class="bg-background text-foreground min-h-screen flex items-center justify-center p-4">
+		<div id="app" class="w-full max-w-md">
+			<!-- Auth Form -->
+			<div id="authForm" class="bg-card rounded-lg border shadow-sm p-6">
+				<div class="space-y-2 mb-6">
+					<h2 class="text-2xl font-semibold tracking-tight">Welcome back</h2>
+					<p class="text-sm text-muted-foreground">Enter your credentials to access your account</p>
+				</div>
+
+				<form id="loginForm" class="space-y-4">
+					<div class="space-y-2">
+						<label
+							for="repository"
+							class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+						>
+							Repository
+						</label>
+						<input
+							type="url"
+							id="repository"
+							name="repository"
+							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+							placeholder="https://gitlab.example.com"
+							required
+						/>
+					</div>
+
+					<div class="space-y-2">
+						<label
+							for="username"
+							class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+						>
+							Username
+						</label>
+						<input
+							type="text"
+							id="username"
+							name="username"
+							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+							placeholder="Enter your username"
+							required
+						/>
+					</div>
+
+					<div class="space-y-2">
+						<label
+							for="token"
+							class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+						>
+							Access Token
+						</label>
+						<input
+							type="password"
+							id="token"
+							name="token"
+							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+							placeholder="Enter your token"
+							required
+						/>
+					</div>
+
+					<div
+						id="errorMessage"
+						class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3"
+					></div>
+
+					<button
+						type="submit"
+						class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+					>
+						Sign In
+					</button>
+				</form>
+			</div>
+
+			<!-- Dashboard (shown after login) -->
+			<div id="dashboard" class="hidden fixed inset-0 bg-background">
+				<div class="h-full flex flex-col">
+					<!-- Main Content Area -->
+					<div class="flex-1 flex overflow-hidden">
+						<!-- Side Panel -->
+						<aside id="sidebar" class="sidebar border-r bg-card flex flex-col">
+							<!-- Sidebar Header with Toggle -->
+							<div class="p-3 border-b flex items-center justify-between sidebar-title">
+								<div class="sidebar-label flex items-center gap-1">
+									<span class="font-semibold text-sm" id="displayUsername">Navigation</span>
+									<button
+										id="logoutBtn"
+										class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-secondary hover:bg-secondary/80 h-6 w-6"
+										title="Logout"
+									>
+										<i class="fas fa-arrow-right-from-bracket"></i>
+									</button>
+
+									<!-- Theme toggle button -->
+									<button
+										id="themeToggleBtn"
+										class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-6 w-6"
+										title="Toggle theme"
+										aria-label="Toggle theme"
+									>
+										<i class="fas fa-sun"></i>
+									</button>
+								</div>
+								<button
+									id="sidebarToggle"
+									class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-6 w-6"
+									title="Toggle sidebar"
+								>
+									<i class="fas fa-angles-left"></i>
+								</button>
+							</div>
+
+							<!-- Navigation Tabs -->
+							<nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+								<button
+									data-tab="projects"
+									class="tab-button w-full text-left px-2 py-2 rounded-md text-sm font-medium transition-colors text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-3"
+									title="Projects"
+								>
+									<i class="fas fa-folder w-5 flex-shrink-0 text-center"></i>
+									<span class="sidebar-label">Projects</span>
+								</button>
+								<button
+									data-tab="track"
+									class="tab-button w-full text-left px-2 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground flex items-center gap-3"
+									title="Track"
+								>
+									<i class="fas fa-clock w-5 flex-shrink-0 text-center"></i>
+									<span class="sidebar-label">Track</span>
+								</button>
+
+								<!-- Current Month Calendar Widget -->
+								<div class="sidebar-label mt-4 bg-card border rounded-lg p-3">
+									<div class="flex items-center justify-between mb-2">
+										<h3 class="text-sm font-semibold flex items-center sidebar-label">
+											<i class="fas fa-calendar mr-2 text-primary"></i>
+											<span id="trackCalendarMonthTitle">Current Month</span>
+										</h3>
+										<div class="flex items-center gap-1 sidebar-label">
+											<div class="trackCalendarMonthTotal text-primary font-semibold text-sm"></div>
+										</div>
+									</div>
+
+									<div class="sidebar-label">
+										<div class="grid grid-cols-7 gap-0.5 mb-1">
+											<div class="text-center text-[10px] font-medium text-muted-foreground py-0.5">
+												M
+											</div>
+											<div class="text-center text-[10px] font-medium text-muted-foreground py-0.5">
+												T
+											</div>
+											<div class="text-center text-[10px] font-medium text-muted-foreground py-0.5">
+												W
+											</div>
+											<div class="text-center text-[10px] font-medium text-muted-foreground py-0.5">
+												T
+											</div>
+											<div class="text-center text-[10px] font-medium text-muted-foreground py-0.5">
+												F
+											</div>
+											<div class="text-center text-[10px] font-medium text-muted-foreground py-0.5">
+												S
+											</div>
+											<div class="text-center text-[10px] font-medium text-muted-foreground py-0.5">
+												S
+											</div>
+										</div>
+										<div id="trackCalendarGrid" class="grid grid-cols-7 gap-0.5">
+											<!-- Calendar days will be populated by JavaScript -->
+										</div>
+									</div>
+								</div>
+							</nav>
+							<!-- Action Button -->
+							<div class="p-3 border-t">
+								<button
+									id="newLogBtn"
+									class="w-full inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+									title="New Log"
+								>
+									<i class="fas fa-plus flex-shrink-0"></i>
+									<span class="sidebar-label">New Log</span>
+								</button>
+							</div>
+						</aside>
+
+						<!-- Main Content -->
+						<main class="flex-1 overflow-auto">
+							<!-- Projects Tab Content -->
+							<div id="projectsContent" class="tab-content hidden py-1 px-3 pb-3">
+								<div class="w-full">
+									<!-- Header with Title/Breadcrumbs and Actions -->
+									<div
+										class="sticky py-2 px-4 top-0 -mt-2 -mx-3 flex items-center justify-between mb-3 bg-background border-b z-10"
+									>
+										<div id="projectsHeader">
+											<h2 id="projectsTitle" class="text-lg font-semibold tracking-tight">
+												Projects
+											</h2>
+
+											<div id="projectsBreadcrumb" class="hidden flex items-center gap-2 text-lg">
+												<button
+													id="backToProjects"
+													class="text-primary hover:text-primary/80 font-medium flex items-center gap-2"
+												>
+													<span id="breadcrumbProjectName" class="font-semibold"></span>
+												</button>
+												<i class="fas fa-chevron-right text-muted-foreground text-xs"></i>
+												<span class="font-semibold">Issues</span>
+											</div>
+										</div>
+										<button
+											id="refreshProjects"
+											class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
+											title="Refresh"
+										>
+											<i class="fas fa-sync-alt"></i>
+										</button>
+									</div>
+
+									<!-- Projects List View -->
+									<div id="projectsListView">
+										<!-- Loading State -->
+										<div id="projectsLoading" class="hidden text-center py-12">
+											<i
+												class="fas fa-circle-notch fa-spin text-3xl text-muted-foreground mb-3"
+											></i>
+											<p class="text-muted-foreground">Loading projects...</p>
+										</div>
+
+										<!-- Error State -->
+										<div
+											id="projectsError"
+											class="hidden bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4"
+										>
+											<div class="flex items-start gap-3">
+												<i class="fas fa-exclamation-circle text-destructive mt-0.5"></i>
+												<div class="flex-1">
+													<h3 class="font-medium text-destructive mb-1">Error loading projects</h3>
+													<p class="text-sm text-destructive/80" id="projectsErrorMessage"></p>
+												</div>
+											</div>
+										</div>
+
+										<!-- Empty State -->
+										<div id="projectsEmpty" class="hidden text-center py-12">
+											<i class="fas fa-folder-open text-4xl text-muted-foreground mb-3"></i>
+											<p class="text-muted-foreground">No projects found</p>
+										</div>
+
+										<!-- Projects List -->
+										<div
+											id="projectsList"
+											class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"
+										>
+											<!-- Projects will be dynamically inserted here -->
+										</div>
+									</div>
+
+									<!-- Issues List View -->
+									<div id="issuesListView" class="hidden">
+										<!-- Loading State -->
+										<div id="issuesLoading" class="hidden text-center py-12">
+											<i
+												class="fas fa-circle-notch fa-spin text-3xl text-muted-foreground mb-3"
+											></i>
+											<p class="text-muted-foreground">Loading issues...</p>
+										</div>
+
+										<!-- Error State -->
+										<div
+											id="issuesError"
+											class="hidden bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4"
+										>
+											<div class="flex items-start gap-3">
+												<i class="fas fa-exclamation-circle text-destructive mt-0.5"></i>
+												<div class="flex-1">
+													<h3 class="font-medium text-destructive mb-1">Error loading issues</h3>
+													<p class="text-sm text-destructive/80" id="issuesErrorMessage"></p>
+												</div>
+											</div>
+										</div>
+
+										<!-- Empty State -->
+										<div id="issuesEmpty" class="hidden text-center py-12">
+											<i class="fas fa-circle-exclamation text-4xl text-muted-foreground mb-3"></i>
+											<p class="text-muted-foreground">No issues found</p>
+										</div>
+
+										<!-- Issues List -->
+										<div
+											id="issuesList"
+											class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"
+										>
+											<!-- Issues will be dynamically inserted here -->
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Track Tab Content -->
+							<div id="trackContent" class="tab-content py-1 px-3 pb-3">
+								<div class="w-full">
+									<!-- Header -->
+									<div
+										class="sticky py-2 px-4 top-0 -mt-2 -mx-3 flex items-center justify-between mb-3 bg-background border-b"
+									>
+										<div class="flex items-center gap-4">
+											<h2 id="trackContentTitle" class="text-lg font-semibold tracking-tight">
+												Time Logs
+											</h2>
+
+											<div class="flex items-center border rounded-md p-0.5">
+												<button
+													id="loadPrevMonth"
+													class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-6 w-6"
+													title="Toggle sidebar"
+												>
+													<i class="fas fa-angle-left"></i>
+												</button>
+												<button
+													id="loadNextMonth"
+													class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-6 w-6"
+													title="Toggle sidebar"
+												>
+													<i class="fas fa-angle-right"></i>
+												</button>
+											</div>
+										</div>
+
+										<div class="flex items-center gap-2">
+											<div class="w-40 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+												<div
+													id="trackCalendarMonthProgress"
+													class="bg-foreground h-1.5 rounded-full transition-[width] duration-300 ease-out max-w-full"
+													style="width: 0"
+												></div>
+											</div>
+											<div id="trackMonthEntries" class="text-xs text-muted-foreground">
+												0 entries
+											</div>
+											<div class="trackCalendarMonthTotal text-primary font-semibold text-sm"></div>
+										</div>
+
+										<button
+											id="refreshTimeLogs"
+											class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
+											title="Refresh"
+										>
+											<i class="fas fa-sync-alt"></i>
+										</button>
+									</div>
+
+									<!-- Loading State -->
+									<div id="timeLogsLoading" class="hidden text-center py-12">
+										<i class="fas fa-circle-notch fa-spin text-3xl text-muted-foreground mb-3"></i>
+
+										<p class="text-muted-foreground">Loading time logs...</p>
+									</div>
+									<!-- Error State -->
+									<div
+										id="timeLogsError"
+										class="hidden bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4"
+									>
+										<div class="flex items-start gap-3">
+											<i class="fas fa-exclamation-circle text-destructive mt-0.5"></i>
+											<div class="flex-1">
+												<h3 class="font-medium text-destructive mb-1">Error loading time logs</h3>
+												<p class="text-sm text-destructive/80" id="timeLogsErrorMessage"></p>
+											</div>
+										</div>
+									</div>
+
+									<!-- Empty State -->
+									<div id="timeLogsEmpty" class="hidden text-center py-12">
+										<i class="fas fa-clock text-4xl text-muted-foreground mb-3"></i>
+										<p class="text-muted-foreground">No time logs found</p>
+									</div>
+
+									<!-- Time Logs List -->
+									<div id="timeLogsList" class="space-y-3">
+										<!-- Time logs will be dynamically inserted here -->
+									</div>
+								</div>
+							</div>
+
+							<!-- New Log Modal -->
+							<div id="newLogModal" class="hidden fixed inset-0 z-50 items-center justify-center">
+								<!-- Overlay -->
+								<div class="absolute inset-0 bg-black/40" aria-hidden="true"></div>
+								<!-- Modal -->
+								<div class="relative w-full flex items-center h-full max-w-lg mx-auto">
+									<div class="bg-card border rounded-lg p-5 z-10">
+										<h3 class="text-lg font-semibold mb-3">Add Time Log</h3>
+										<form id="newLogForm" class="flex flex-col gap-2">
+											<div class="grid grid-cols-2 gap-2">
+												<div>
+													<label for="newLogDate" class="block text-xs font-medium mb-1"
+														>Date</label
+													>
+													<input
+														id="newLogDate"
+														name="date"
+														type="date"
+														class="w-full rounded-md border px-3 py-2 text-sm"
+														required
+													/>
+												</div>
+												<div>
+													<label for="newLogDuration" class="block text-xs font-medium mb-1"
+														>Time spent</label
+													>
+													<input
+														id="newLogDuration"
+														name="duration"
+														type="text"
+														placeholder="e.g. 1h, 30m"
+														class="w-full rounded-md border px-3 py-2 text-sm"
+													/>
+													<p class="text-[11px] text-muted-foreground mt-1">
+														Format: Nd (e.g. 1h, 30m). Defaults to 1h if empty.
+													</p>
+												</div>
+											</div>
+
+											<div>
+												<label for="newLogProject" class="block text-xs font-medium mb-1"
+													>Project</label
+												>
+												<select
+													id="newLogProject"
+													name="project"
+													class="w-full rounded-md border px-3 py-2 text-sm"
+													required
+												>
+													<option value="">Loading projects...</option>
+												</select>
+											</div>
+											<div>
+												<label for="newLogIssue" class="block text-xs font-medium mb-1"
+													>Issue</label
+												>
+												<select
+													id="newLogIssue"
+													name="issue"
+													class="w-full rounded-md border px-3 py-2 text-sm"
+													required
+												>
+													<option value="">Select project first</option>
+												</select>
+											</div>
+
+											<div>
+												<label for="newLogSummary" class="block text-xs font-medium mb-1"
+													>Summary</label
+												>
+												<textarea
+													id="newLogSummary"
+													name="summary"
+													rows="3"
+													class="w-full rounded-md border px-3 py-2 text-sm"
+													placeholder="Short description"
+												></textarea>
+											</div>
+											<div class="flex justify-end gap-2 pt-2">
+												<button
+													type="button"
+													id="newLogCancelBtn"
+													class="inline-flex items-center px-3 py-1 rounded-md border hover:bg-muted text-sm"
+												>
+													Cancel
+												</button>
+												<button
+													type="submit"
+													id="newLogSubmitBtn"
+													class="inline-flex items-center px-3 py-1 rounded-md bg-primary text-primary-foreground text-sm"
+												>
+													Submit
+												</button>
+												<button
+													type="button"
+													id="newLogDeleteBtn"
+													class="inline-flex items-center px-3 py-1 rounded-md bg-destructive text-destructive-foreground text-sm hidden"
+												>
+													Delete
+												</button>
+											</div>
+										</form>
+									</div>
+								</div>
+							</div>
+						</main>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			// Import application module
+			import { checkAuth, showLoginForm, initializeEventHandlers } from "./js/modules/app.js";
+
+			// Initialize event handlers
+			initializeEventHandlers();
+
+			// Initialize app
+			if (!checkAuth()) {
+				showLoginForm();
+			}
+		</script>
+	</body>
+</html>
