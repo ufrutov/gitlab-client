@@ -1,6 +1,7 @@
 import gitlabAPI from "../utils/gitlab.js";
 import { escapeHtml } from "../utils/utils.js";
 import store from "../utils/store.js";
+import * as favorites from "../utils/favorites.js";
 
 // New Log modal helpers (moved out of app.js to avoid clutter and allow reuse)
 
@@ -253,9 +254,20 @@ async function populateNewLogProjects() {
 			projectSelect.innerHTML = `<option value="">No projects found</option>`;
 			return;
 		}
+
+		// Sort projects: favorites first
+		const favoriteProjectIds = favorites.getFavoriteProjects();
+		const sortedProjects = nodes.sort((a, b) => {
+			const aIsFav = favoriteProjectIds.includes(a.id);
+			const bIsFav = favoriteProjectIds.includes(b.id);
+			if (aIsFav && !bIsFav) return -1;
+			if (!aIsFav && bIsFav) return 1;
+			return 0;
+		});
+
 		projectSelect.innerHTML =
 			`<option value="">Select project</option>` +
-			nodes
+			sortedProjects
 				.map((p) => `<option value="${escapeHtml(p.fullPath)}">${escapeHtml(p.name)}</option>`)
 				.join("");
 		// clear issues
@@ -289,9 +301,20 @@ export async function populateNewLogIssues(projectFullPath) {
 			issueSelect.innerHTML = `<option value="">No issues found</option>`;
 			return;
 		}
+
+		// Sort issues: favorites first
+		const favoriteIssueIds = favorites.getFavoriteIssues();
+		const sortedIssues = nodes.sort((a, b) => {
+			const aIsFav = favoriteIssueIds.includes(a.id);
+			const bIsFav = favoriteIssueIds.includes(b.id);
+			if (aIsFav && !bIsFav) return -1;
+			if (!aIsFav && bIsFav) return 1;
+			return 0;
+		});
+
 		issueSelect.innerHTML =
 			`<option value="">Select issue</option>` +
-			nodes
+			sortedIssues
 				.map(
 					(i) =>
 						`<option value="${escapeHtml(String(i.iid))}">#${escapeHtml(

@@ -1,5 +1,6 @@
 import gitlabAPI from "../utils/gitlab.js";
 import * as store from "../utils/store.js";
+import * as favorites from "../utils/favorites.js";
 import { escapeHtml, formatDate } from "../utils/utils.js";
 import {
 	showNewLogModal,
@@ -36,6 +37,14 @@ export {
 // of the month for the selected period. Defaults to current month.
 let currentPeriod = new Date();
 currentPeriod = new Date(currentPeriod.getFullYear(), currentPeriod.getMonth(), 1);
+
+// Pagination state for issues
+let issuesPagination = {
+	endCursor: null,
+	hasNextPage: false,
+	projectFullPath: null,
+	allIssues: [],
+};
 
 // ============================================================
 // Auth Management
@@ -132,9 +141,19 @@ export async function loadProjects(force = false) {
 			return;
 		}
 
+		// Sort projects: favorites first
+		const favoriteProjectIds = favorites.getFavoriteProjects();
+		const sortedProjects = nodes.sort((a, b) => {
+			const aIsFav = favoriteProjectIds.includes(a.id);
+			const bIsFav = favoriteProjectIds.includes(b.id);
+			if (aIsFav && !bIsFav) return -1;
+			if (!aIsFav && bIsFav) return 1;
+			return 0;
+		});
+
 		// Display projects
 		projectsList.innerHTML = "";
-		nodes.forEach((project) => {
+		sortedProjects.forEach((project) => {
 			const projectCard = createProjectCard(project);
 			projectsList.appendChild(projectCard);
 		});
@@ -182,7 +201,9 @@ function createProjectCard(project) {
 						} mr-0.5"></i>
 						${visibility}
 					</span>
-					<i class="fas fa-star text-xs cursor-pointer text-muted-foreground hover:text-amber-300"></i>
+					<i class="fas fa-star project-star-icon text-xs cursor-pointer ${
+						favorites.isProjectFavorite(project.id) ? "text-amber-400" : "text-muted-foreground"
+					} hover:text-amber-300" data-project-id="${project.id}"></i>
 				</div>
 				<p class="text-sm text-muted-foreground mb-2">${project.fullPath}</p>
 				${
@@ -199,26 +220,48 @@ function createProjectCard(project) {
 					</span>`
 							: ""
 					}
-					${
-						project.lastActivityAt
-							? `<span class="flex items-center gap-1">
-						<i class="far fa-clock"></i>
-						Updated ${formatDate(project.lastActivityAt)}
-					</span>`
-							: ""
-					}
-					${
-						project.namespace
-							? `<span class="flex items-center gap-1">
-						<i class="fas fa-folder"></i>
-						${escapeHtml(project.namespace.name)}
-					</span>`
-							: ""
-					}
+					<div class="flex flex-col gap-1">
+						${
+							project.lastActivityAt
+								? `<span class="flex items-center gap-1">
+							<i class="far fa-clock"></i>
+							Updated ${formatDate(project.lastActivityAt)}
+						</span>`
+								: ""
+						}
+						${
+							project.namespace
+								? `<span class="flex items-center gap-1">
+							<i class="fas fa-folder"></i>
+							${escapeHtml(project.namespace.name)}
+						</span>`
+								: ""
+						}
+					</div>
 				</div>
 			</div>
 		</div>
 	`;
+
+	// Add click handler for favorite star icon
+	const starIcon = card.querySelector(".project-star-icon");
+	if (starIcon) {
+		starIcon.addEventListener("click", (e) => {
+			e.stopPropagation(); // Prevent card click event
+			const projectId = starIcon.getAttribute("data-project-id");
+			const isFavorite = favorites.toggleProjectFavorite(projectId);
+			// Update icon appearance
+			if (isFavorite) {
+				starIcon.classList.remove("text-muted-foreground");
+				starIcon.classList.add("text-amber-400");
+			} else {
+				starIcon.classList.remove("text-amber-400");
+				starIcon.classList.add("text-muted-foreground");
+			}
+			// Reload projects to re-sort
+			loadProjects();
+		});
+	}
 
 	return card;
 }
@@ -249,7 +292,7 @@ export async function showProjectIssues(projectFullPath, projectName) {
 	document.getElementById("breadcrumbProjectName").textContent = projectName;
 
 	// Load issues
-	await loadIssues(projectFullPath);
+	await loadIssues(projectFullPath, false, true);
 }
 
 export function showProjectsList() {
@@ -266,44 +309,109 @@ export function showProjectsList() {
 	sessionStorage.removeItem("selectedProjectName");
 }
 
-export async function loadIssues(projectFullPath, force = false) {
+export async function loadIssues(projectFullPath, force = false, append = false) {
 	const issuesList = document.getElementById("issuesList");
 	const issuesLoading = document.getElementById("issuesLoading");
 	const issuesError = document.getElementById("issuesError");
 	const issuesEmpty = document.getElementById("issuesEmpty");
 
-	// Show loading state
-	issuesList.classList.add("hidden");
+	// If loading a new project, reset pagination
+	if (projectFullPath !== issuesPagination.projectFullPath) {
+		issuesPagination = {
+			endCursor: null,
+			hasNextPage: false,
+			projectFullPath: projectFullPath,
+			allIssues: [],
+		};
+	}
+
+	// Show loading state (but don't hide list if appending)
+	if (!append) {
+		issuesList.classList.add("hidden");
+	}
 	issuesError.classList.add("hidden");
 	issuesEmpty.classList.add("hidden");
 	issuesLoading.classList.remove("hidden");
 
 	try {
-		const cached = !force && store.getIssues(projectFullPath);
 		let nodes = null;
-		if (cached && Array.isArray(cached) && cached.length > 0) {
-			nodes = cached;
-		} else {
-			// Fetch issues from GitLab
-			const result = await gitlabAPI.listIssues(projectFullPath, { first: 50 });
+		let pageInfo = null;
+
+		// If not appending and not forcing, try cache
+		if (!append && !force) {
+			const cached = store.getIssues(projectFullPath);
+			if (cached && Array.isArray(cached) && cached.length > 0) {
+				nodes = cached;
+				// For cached data, we don't have pageInfo, so assume no next page
+				pageInfo = { hasNextPage: false, endCursor: null };
+			}
+		}
+
+		// If no cached data or appending, fetch from API
+		if (!nodes || append) {
+			const result = await gitlabAPI.listIssues(projectFullPath, {
+				first: 50,
+				after: append ? issuesPagination.endCursor : null,
+			});
 			nodes = result.nodes || [];
-			// Cache them
-			store.storeIssues(projectFullPath, nodes);
+			pageInfo = result.pageInfo || { hasNextPage: false, endCursor: null };
+
+			// If not appending, cache the first page
+			if (!append) {
+				store.storeIssues(projectFullPath, nodes);
+			}
 		}
 
 		issuesLoading.classList.add("hidden");
 
-		if (!nodes || nodes.length === 0) {
+		// Update pagination state
+		if (append) {
+			issuesPagination.allIssues = [...issuesPagination.allIssues, ...nodes];
+		} else {
+			issuesPagination.allIssues = nodes;
+		}
+		issuesPagination.endCursor = pageInfo.endCursor;
+		issuesPagination.hasNextPage = pageInfo.hasNextPage;
+
+		if (issuesPagination.allIssues.length === 0) {
 			issuesEmpty.classList.remove("hidden");
 			return;
 		}
 
-		// Display issues
+		// Sort issues: favorites first
+		const favoriteIssueIds = favorites.getFavoriteIssues();
+		const sortedIssues = issuesPagination.allIssues.sort((a, b) => {
+			const aIsFav = favoriteIssueIds.includes(a.id);
+			const bIsFav = favoriteIssueIds.includes(b.id);
+			if (aIsFav && !bIsFav) return -1;
+			if (!aIsFav && bIsFav) return 1;
+			return 0;
+		});
+
+		// Display issues (clear and re-render all)
 		issuesList.innerHTML = "";
-		nodes.forEach((issue) => {
+		sortedIssues.forEach((issue) => {
 			const issueCard = createIssueCard(issue);
 			issuesList.appendChild(issueCard);
 		});
+
+		// Add "Load more" button if there are more pages
+		if (issuesPagination.hasNextPage) {
+			const loadMore = document.createElement("div");
+			loadMore.id = "loadMoreIssues";
+			loadMore.className =
+				"bg-card border rounded-lg p-4 hover:shadow-md hover:border-blue-300 transition-shadow cursor-pointer";
+			loadMore.innerHTML = `
+				<div class="h-full flex flex-1 flex-col items-center justify-center gap-2 group">
+					<i class="fas fa-list-check text-muted-foreground group-hover:text-blue-500"></i>
+					<span class="text-sm text-muted-foreground group-hover:text-blue-500">Load more</span>
+				</div>
+			`;
+			loadMore.addEventListener("click", async () => {
+				await loadIssues(projectFullPath, false, true);
+			});
+			issuesList.appendChild(loadMore);
+		}
 
 		issuesList.classList.remove("hidden");
 	} catch (error) {
@@ -337,7 +445,12 @@ function createIssueCard(issue) {
 						<span class="text-sm font-semibold">#${issue.iid}</span>
 						<i class="fas fa-external-link-alt text-xs"></i>
 					</a>
-					<h3 class="font-medium mb-1 break-words">${escapeHtml(issue.title)}</h3>
+					<h3 class="font-medium mb-1 break-words">
+						${escapeHtml(issue.title)}
+						<i class="fas fa-star issue-star-icon text-xs cursor-pointer ${
+							favorites.isIssueFavorite(issue.id) ? "text-amber-400" : "text-muted-foreground"
+						} hover:text-amber-300" data-issue-id="${issue.id}"></i>
+					</h3>
 				</div>
 				${
 					issue.description
@@ -346,32 +459,16 @@ function createIssueCard(issue) {
 						  )}${issue.description.length > 150 ? "..." : ""}</p>`
 						: ""
 				}
-				<div class="flex items-center gap-1 my-2 flex-wrap">
-					<span class="inline-flex items-center rounded-full ${stateColor} px-2 py-0.5 text-xs font-medium">
-						<i class="fas fa-${issue.state === "opened" ? "circle-dot" : "circle-check"} mr-1"></i>
-						${issue.state}
-					</span>
-					${labels
-						.map(
-							(label) =>
-								`<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" style="background-color: ${
-									label.color
-								}22; color: ${label.color};">
-							${escapeHtml(label.title)}
+				<div class="flex items-start justify-between gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
+					<div class="flex flex-col items-start gap-1">
+						${
+							issue.author
+								? `<span class="flex items-center gap-1 font-medium">
+							<i class="fas fa-user"></i>
+							${escapeHtml(issue.author.name)}
 						</span>`
-						)
-						.join("")}
-				</div>
-				<div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
-					${
-						issue.author
-							? `<span class="flex items-center gap-1">
-						<i class="fas fa-user"></i>
-						${escapeHtml(issue.author.name)}
-					</span>`
-							: ""
-					}
-					<div class="flex items-center gap-2">
+								: ""
+						}
 						${
 							issue.createdAt
 								? `<span class="flex items-center gap-1">
@@ -389,10 +486,50 @@ function createIssueCard(issue) {
 								: ""
 						}
 					</div>
+
+					<div class="flex-1 flex items-center justify-end flex-wrap gap-1">
+						<span class="inline-flex items-center rounded-full ${stateColor} px-2 py-0.5 text-xs font-medium">
+							<i class="fas fa-${issue.state === "opened" ? "circle-dot" : "circle-check"} mr-1"></i>
+							${issue.state}
+						</span>
+						${labels
+							.map(
+								(label) =>
+									`<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" style="background-color: ${
+										label.color
+									}22; color: ${label.color};">
+								${escapeHtml(label.title)}
+							</span>`
+							)
+							.join("")}
+					</div>
 				</div>
 			</div>
 		</div>
 	`;
+
+	// Add click handler for favorite star icon
+	const starIcon = card.querySelector(".issue-star-icon");
+	if (starIcon) {
+		starIcon.addEventListener("click", (e) => {
+			e.stopPropagation(); // Prevent card click event
+			const issueId = starIcon.getAttribute("data-issue-id");
+			const isFavorite = favorites.toggleIssueFavorite(issueId);
+			// Update icon appearance
+			if (isFavorite) {
+				starIcon.classList.remove("text-muted-foreground");
+				starIcon.classList.add("text-amber-400");
+			} else {
+				starIcon.classList.remove("text-amber-400");
+				starIcon.classList.add("text-muted-foreground");
+			}
+			// Reload issues to re-sort
+			const projectFullPath = sessionStorage.getItem("selectedProject");
+			if (projectFullPath) {
+				loadIssues(projectFullPath);
+			}
+		});
+	}
 
 	return card;
 }
@@ -614,7 +751,7 @@ function createWeekContainer(weekGroup, sortedDays) {
 
 	// Create days container
 	const daysContainer = document.createElement("div");
-	daysContainer.className = "grid grid-cols-5 gap-2";
+	daysContainer.className = "grid md:grid-cols-2 lg:grid-cols-5 gap-2";
 
 	// Add all day containers
 	sortedDays.forEach((dayGroup) => {

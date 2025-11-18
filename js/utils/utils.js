@@ -18,8 +18,18 @@ export function escapeHtml(text) {
  * @param {string} dateString - The ISO date string to format
  * @returns {string} - Human-readable relative time (e.g., "2 days ago")
  */
-export function formatDate(dateString) {
+export function formatDate(dateString, readable = false) {
 	const date = new Date(dateString);
+
+	if (!readable) {
+		const day = String(date.getDate()).padStart(2, "0");
+		const month = String(date.getMonth() + 1).padStart(2, "0");
+		const year = date.getFullYear();
+		const hours = String(date.getHours()).padStart(2, "0");
+		const minutes = String(date.getMinutes()).padStart(2, "0");
+		return `${day}/${month}/${year} ${hours}:${minutes}`;
+	}
+
 	const now = new Date();
 	const diffTime = Math.abs(now - date);
 	const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));

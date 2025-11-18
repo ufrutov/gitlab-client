@@ -18,6 +18,7 @@ export function getStoredAuth() {
 }
 
 import store from "../utils/store.js";
+import { reinitializeGitLabAPI } from "../utils/gitlab.js";
 
 export function saveCredentials(username, token, repository) {
 	const auth = {
@@ -32,6 +33,12 @@ export function saveCredentials(username, token, repository) {
 		if (store && typeof store.clearAll === "function") store.clearAll();
 	} catch (e) {
 		// ignore
+	}
+	// Reinitialize GitLab API with new repository base URL
+	try {
+		if (typeof reinitializeGitLabAPI === "function") reinitializeGitLabAPI();
+	} catch (e) {
+		console.error("Failed to reinitialize GitLabAPI:", e);
 	}
 }
 

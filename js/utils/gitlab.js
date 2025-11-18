@@ -718,20 +718,52 @@ export class GitLabAPI {
 
 // Export a default instance for convenience. If the user has set a repository
 // URL in localStorage (saved via the login form), use it as the base URL.
-let defaultBase = "";
-
-try {
-	const auth = localStorage.getItem("userAuth");
-	if (auth) {
-		const parsed = JSON.parse(auth);
-
-		if (parsed && parsed.repository) {
-			defaultBase = parsed.repository;
+function getDefaultBase() {
+	try {
+		const auth = localStorage.getItem("userAuth");
+		if (auth) {
+			const parsed = JSON.parse(auth);
+			if (parsed && parsed.repository) {
+				return parsed.repository;
+			}
 		}
+	} catch (e) {
+		console.error(`[E][GitLabAPI] Failed to get Repository URL from localStorage: ${e}`);
 	}
-} catch (e) {
-	// ignore and fall back to default
-	console.error(`[E][GitLabAPI] Failed to get Repository URL from localStorage: ${e}`);
+	return "";
 }
 
-export default new GitLabAPI(defaultBase);
+let instance = null;
+
+/**
+ * Get or create the default GitLabAPI instance with current repository from localStorage.
+ * Lazily initialized on first access.
+ */
+function getDefaultInstance() {
+	if (!instance) {
+		instance = new GitLabAPI(getDefaultBase());
+	}
+	return instance;
+}
+
+/**
+ * Reinitialize the default GitLabAPI instance with current repository from localStorage.
+ * Call this after saving new credentials to apply the updated base URL.
+ */
+export function reinitializeGitLabAPI() {
+	instance = new GitLabAPI(getDefaultBase());
+	return instance;
+}
+
+// Export a proxy that delegates all calls to the current instance
+export default new Proxy(
+	{},
+	{
+		get(target, prop) {
+			const currentInstance = getDefaultInstance();
+			const value = currentInstance[prop];
+			// Bind methods to the instance
+			return typeof value === "function" ? value.bind(currentInstance) : value;
+		},
+	}
+);
