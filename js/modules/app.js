@@ -459,50 +459,64 @@ function createIssueCard(issue) {
 						  )}${issue.description.length > 150 ? "..." : ""}</p>`
 						: ""
 				}
-				<div class="flex items-start justify-between gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
+				<div class="mt-2 flex-1 flex items-center justify-start flex-wrap gap-1">
+					<span class="inline-flex items-center rounded-full ${stateColor} px-2 py-0.5 text-xs font-medium">
+						<i class="fas fa-${issue.state === "opened" ? "circle-dot" : "circle-check"} mr-1"></i>
+						${issue.state}
+					</span>
+					${labels
+						.map(
+							(label) =>
+								`<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" style="background-color: ${
+									label.color
+								}22; color: ${label.color};">
+							${escapeHtml(label.title)}
+						</span>`
+						)
+						.join("")}
+				</div>
+
+				<div class="flex flex-col gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
 					<div class="flex flex-col items-start gap-1">
 						${
 							issue.author
-								? `<span class="flex items-center gap-1 font-medium">
-							<i class="fas fa-user"></i>
-							${escapeHtml(issue.author.name)}
-						</span>`
+								? `<span class="flex items-center gap-1 font-medium" title="Author: ${
+										issue.author.name
+								  }">
+										<i class="fas fa-user"></i>
+										<span class="font-normal">Author:</span>
+										${escapeHtml(issue.author.name)}
+									</span>`
 								: ""
 						}
-						${
-							issue.createdAt
-								? `<span class="flex items-center gap-1">
-							<i class="far fa-clock"></i>
-							Created ${formatDate(issue.createdAt)}
-						</span>`
-								: ""
-						}
-						${
-							issue.updatedAt
-								? `<span class="flex items-center gap-1">
-							<i class="fas fa-sync-alt"></i>
-							Updated ${formatDate(issue.updatedAt)}
-						</span>`
-								: ""
-						}
-					</div>
-
-					<div class="flex-1 flex items-center justify-end flex-wrap gap-1">
-						<span class="inline-flex items-center rounded-full ${stateColor} px-2 py-0.5 text-xs font-medium">
-							<i class="fas fa-${issue.state === "opened" ? "circle-dot" : "circle-check"} mr-1"></i>
-							${issue.state}
-						</span>
-						${labels
-							.map(
-								(label) =>
-									`<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" style="background-color: ${
-										label.color
-									}22; color: ${label.color};">
-								${escapeHtml(label.title)}
+							${
+								issue.assignees.nodes.length > 0
+									? `<span class="flex items-center gap-1 font-medium">
+											<i class="fas fa-user"></i>
+											<span class="font-normal">Assignee:</span>
+											${issue.assignees.nodes.map(({ name }) => `<span>${name}</span>`).join(", ")}
+										</span>`
+									: ""
+							}
+						</div>
+						<div class="flex-1 flex flex-col xl:flex-row items-start justify-between gap-1">
+							${
+								issue.createdAt
+									? `<span class="flex items-center gap-1">
+								<i class="far fa-clock"></i>
+								Created ${formatDate(issue.createdAt)}
 							</span>`
-							)
-							.join("")}
-					</div>
+									: ""
+							}
+							${
+								issue.updatedAt
+									? `<span class="flex items-center gap-1">
+								<i class="fas fa-sync-alt"></i>
+								Updated ${formatDate(issue.updatedAt)}
+							</span>`
+									: ""
+							}
+						</div>
 				</div>
 			</div>
 		</div>
