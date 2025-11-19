@@ -427,6 +427,19 @@ function createIssueCard(issue) {
 	const card = document.createElement("div");
 	card.className = "bg-card border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer";
 
+	// Add click handler to open issue detail view
+	card.onclick = (e) => {
+		// Don't trigger if clicking on star icon or external link
+		if (e.target.closest(".issue-star-icon") || e.target.closest("a")) {
+			return;
+		}
+		const projectFullPath = sessionStorage.getItem("selectedProject");
+		const projectName = sessionStorage.getItem("selectedProjectName");
+		if (projectFullPath) {
+			showIssueDetail(projectFullPath, projectName, issue.iid);
+		}
+	};
+
 	// Determine state color
 	const stateColors = {
 		opened: "bg-green-100 text-green-800",
@@ -546,6 +559,334 @@ function createIssueCard(issue) {
 	}
 
 	return card;
+}
+
+// ============================================================
+// Issue Detail Management
+// ============================================================
+
+export async function showIssueDetail(projectFullPath, projectName, issueIid) {
+	// Hide issues list, show issue detail
+	document.getElementById("issuesListView").classList.add("hidden");
+	document.getElementById("issueDetailView").classList.remove("hidden");
+
+	// Update breadcrumb
+	document.getElementById("projectsTitle").classList.add("hidden");
+	document.getElementById("projectsBreadcrumb").classList.add("hidden");
+	document.getElementById("issueBreadcrumb").classList.remove("hidden");
+	document.getElementById("issueBreadcrumbProjectName").textContent = projectName;
+	document.getElementById("issueBreadcrumbIssueNumber").textContent = `#${issueIid}`;
+
+	// Store current issue for back navigation
+	sessionStorage.setItem("selectedIssue", issueIid);
+
+	// Load issue details
+	await loadIssueDetail(projectFullPath, issueIid);
+}
+
+export function showIssuesList() {
+	// Show issues list, hide issue detail
+	document.getElementById("issuesListView").classList.remove("hidden");
+	document.getElementById("issueDetailView").classList.add("hidden");
+
+	// Update breadcrumb
+	document.getElementById("issueBreadcrumb").classList.add("hidden");
+	document.getElementById("projectsBreadcrumb").classList.remove("hidden");
+
+	// Clear selected issue
+	sessionStorage.removeItem("selectedIssue");
+}
+
+// Helper function to fix relative avatar URLs
+function getFullAvatarUrl(avatarUrl) {
+	if (!avatarUrl) return null;
+	if (avatarUrl.startsWith("/uploads")) {
+		const auth = getStoredAuth();
+		const repository = auth?.repository || "";
+		return repository + avatarUrl;
+	}
+	return avatarUrl;
+}
+
+async function loadIssueDetail(projectFullPath, issueIid) {
+	const issueDetailContent = document.getElementById("issueDetailContent");
+	const issueDetailLoading = document.getElementById("issueDetailLoading");
+	const issueDetailError = document.getElementById("issueDetailError");
+
+	// Show loading state
+	issueDetailContent.classList.add("hidden");
+	issueDetailError.classList.add("hidden");
+	issueDetailLoading.classList.remove("hidden");
+
+	try {
+		// Fetch issue details
+		const issue = await gitlabAPI.getIssue(projectFullPath, issueIid);
+
+		const issueTimeLogs = issue.timelogs.nodes;
+
+		issueDetailLoading.classList.add("hidden");
+
+		// Display issue details
+		issueDetailContent.innerHTML = "";
+
+		// Issue header card
+		const issueCard = createIssueDetailCard(issue, issueTimeLogs);
+		issueDetailContent.appendChild(issueCard);
+
+		// Time logs section
+		if (issueTimeLogs.length > 0) {
+			const timeLogsSection = createTimeLogsSection(issueTimeLogs, issue);
+			issueDetailContent.appendChild(timeLogsSection);
+		}
+
+		issueDetailContent.classList.remove("hidden");
+	} catch (error) {
+		console.error("Error loading issue detail:", error);
+		issueDetailLoading.classList.add("hidden");
+		issueDetailError.classList.remove("hidden");
+		document.getElementById("issueDetailErrorMessage").textContent =
+			error.message || "Failed to load issue details. Please check your connection and try again.";
+	}
+}
+
+function createIssueDetailCard(issue, timeLogs) {
+	const card = document.createElement("div");
+	card.className = "bg-card border rounded-lg p-4";
+
+	// Determine state color
+	const stateColors = {
+		opened: "bg-green-100 text-green-800",
+		closed: "bg-purple-100 text-purple-800",
+	};
+	const stateColor = stateColors[issue.state] || "bg-gray-100 text-gray-800";
+
+	// Calculate total time spent
+	const totalSeconds = timeLogs.reduce((sum, log) => sum + log.timeSpent, 0);
+	const totalHours = (totalSeconds / 3600).toFixed(1);
+
+	// Get labels
+	const labels = issue.labels?.nodes || [];
+
+	card.innerHTML = `
+		<div class="space-y-4">
+			<div class="flex items-start justify-between gap-4">
+				<div class="flex-1">
+					<div class="flex items-center gap-2 mb-2">
+						<span class="inline-flex items-center rounded-full ${stateColor} px-3 py-1 text-sm font-medium">
+							<i class="fas fa-${issue.state === "opened" ? "circle-dot" : "circle-check"} mr-1"></i>
+							${issue.state}
+						</span>
+						<span class="text-sm font-semibold text-muted-foreground">#${issue.iid}</span>
+					</div>
+					<h2 class="text-2xl font-semibold mb-3">${escapeHtml(issue.title)}</h2>
+					${
+						issue.description
+							? `<div class="relative">
+								<div class="issue-description-content text-sm text-muted-foreground markdown-content max-h-32 overflow-hidden transition-all duration-300">
+									${
+										typeof marked !== "undefined" && marked.parse
+											? marked.parse(issue.description)
+											: escapeHtml(issue.description).replace(/\n/g, "<br>")
+									}
+								</div>
+								<button class="issue-description-toggle mt-2 text-xs text-primary hover:text-primary/80 flex items-center gap-1 font-medium">
+									<span>Expand</span>
+									<i class="fas fa-chevron-down"></i>
+								</button>
+							</div>`
+							: ""
+					}
+				</div>
+				<a href="${issue.webUrl}" target="_blank" class="text-primary hover:text-primary/80">
+					<i class="fas fa-external-link-alt"></i>
+				</a>
+			</div>
+
+			${
+				labels.length > 0
+					? `
+				<div class="flex flex-wrap gap-2">
+					${labels
+						.map(
+							(label) => `
+						<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium" 
+							style="background-color: ${label.color}22; color: ${label.color};">
+							${escapeHtml(label.title)}
+						</span>
+					`
+						)
+						.join("")}
+				</div>
+			`
+					: ""
+			}
+
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+				${
+					issue.author
+						? `
+					<div class="flex flex-col">
+						<span class="text-xs text-muted-foreground mb-1">Author</span>
+						<div class="flex items-center gap-2">
+							${
+								issue.author.avatarUrl
+									? `<img src="${getFullAvatarUrl(
+											issue.author.avatarUrl
+									  )}" class="w-6 h-6 rounded-full" />`
+									: ""
+							}
+							<span class="text-sm font-medium">${escapeHtml(issue.author.name)}</span>
+						</div>
+					</div>
+				`
+						: ""
+				}
+				${
+					issue.assignees?.nodes.length > 0
+						? `
+					<div class="flex flex-col">
+						<span class="text-xs text-muted-foreground mb-1">Assignees</span>
+						<div class="flex flex-wrap gap-2">
+							${issue.assignees.nodes
+								.map(
+									(assignee) => `
+								<div class="flex items-center gap-1">
+									${
+										assignee.avatarUrl
+											? `<img src="${getFullAvatarUrl(
+													assignee.avatarUrl
+											  )}" class="w-5 h-5 rounded-full" />`
+											: ""
+									}
+									<span class="text-sm">${escapeHtml(assignee.name)}</span>
+								</div>
+							`
+								)
+								.join("")}
+						</div>
+					</div>
+				`
+						: ""
+				}
+				<div class="flex flex-col">
+					<span class="text-xs text-muted-foreground mb-1">Time Spent</span>
+					<div class="flex items-center gap-2">
+						<i class="fas fa-clock text-primary"></i>
+						<span class="text-lg font-semibold text-primary">${totalHours}h</span>
+						<span class="text-sm text-muted-foreground">(${timeLogs.length} entries)</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="grid grid-cols-2 gap-4 pt-4 border-t text-sm">
+				${
+					issue.createdAt
+						? `
+					<div>
+						<span class="text-muted-foreground">Created:</span>
+						<span class="font-medium ml-1">${formatDate(issue.createdAt)}</span>
+					</div>
+				`
+						: ""
+				}
+				${
+					issue.updatedAt
+						? `
+					<div>
+						<span class="text-muted-foreground">Updated:</span>
+						<span class="font-medium ml-1">${formatDate(issue.updatedAt)}</span>
+					</div>
+				`
+						: ""
+				}
+			</div>
+		</div>
+	`;
+
+	// Add click handler for expand/collapse button
+	const toggleButton = card.querySelector(".issue-description-toggle");
+	const descriptionContent = card.querySelector(".issue-description-content");
+	if (toggleButton && descriptionContent) {
+		toggleButton.addEventListener("click", () => {
+			const isExpanded = descriptionContent.classList.contains("max-h-none");
+			if (isExpanded) {
+				descriptionContent.classList.remove("max-h-none");
+				descriptionContent.classList.add("max-h-32");
+				toggleButton.querySelector("span").textContent = "Expand";
+				toggleButton.querySelector("i").className = "fas fa-chevron-down";
+			} else {
+				descriptionContent.classList.remove("max-h-32");
+				descriptionContent.classList.add("max-h-none");
+				toggleButton.querySelector("span").textContent = "Collapse";
+				toggleButton.querySelector("i").className = "fas fa-chevron-up";
+			}
+		});
+	}
+
+	return card;
+}
+
+function createTimeLogsSection(timeLogs, issue) {
+	const section = document.createElement("div");
+	section.className = "space-y-3";
+
+	const header = document.createElement("h3");
+	header.className = "text-lg font-semibold mb-2";
+	header.textContent = "Time Logs";
+	section.appendChild(header);
+
+	// Group time logs by week
+	const weekGroups = {};
+	timeLogs.forEach((log) => {
+		const weekKey = getWeekKey(log.spentAt);
+		if (!weekGroups[weekKey]) {
+			const weekStart = new Date(weekKey);
+			weekGroups[weekKey] = {
+				weekStart: weekStart,
+				logs: [],
+				totalSeconds: 0,
+			};
+		}
+
+		log.issue = issue;
+
+		weekGroups[weekKey].logs.push(log);
+		weekGroups[weekKey].totalSeconds += log.timeSpent;
+	});
+
+	// Convert to array and sort by week (most recent first)
+	const sortedWeeks = Object.values(weekGroups).sort((a, b) => b.weekStart - a.weekStart);
+
+	// Create week containers
+	const logsList = document.createElement("div");
+	logsList.className = "space-y-4";
+
+	sortedWeeks.forEach((weekGroup) => {
+		// Group logs by day within the week
+		const logsByDay = {};
+		weekGroup.logs.forEach((log) => {
+			const dayKey = new Date(log.spentAt).toISOString().split("T")[0];
+			if (!logsByDay[dayKey]) {
+				logsByDay[dayKey] = {
+					date: new Date(log.spentAt),
+					logs: [],
+					totalSeconds: 0,
+				};
+			}
+			logsByDay[dayKey].logs.push(log);
+			logsByDay[dayKey].totalSeconds += log.timeSpent;
+		});
+
+		// Sort days by date
+		const sortedDays = Object.values(logsByDay).sort((a, b) => a.date - b.date);
+
+		// Create week container
+		const weekContainer = createWeekContainer(weekGroup, sortedDays);
+		logsList.appendChild(weekContainer);
+	});
+
+	section.appendChild(logsList);
+	return section;
 }
 
 // ============================================================
@@ -950,7 +1291,7 @@ function populateTrackCalendar(timeLogs, periodDate) {
 	}
 }
 
-function createTimeLogCard(log, showUser = false) {
+function createTimeLogCard(log, showUser = true) {
 	const card = document.createElement("div");
 	card.className = "bg-card border rounded-lg p-3 hover:shadow-md transition-shadow";
 
@@ -1015,7 +1356,9 @@ ${
       <div class="flex-1 min-w-0 flex flex-col gap-1">
         <div class="flex w-full items-center justify-between gap-2">
           <span class="text-xs text-muted-foreground">${formattedDate} ${formattedTime}</span>
-          <span class="text-xs font-semibold text-primary">${log.timeSpentHuman}</span>
+          <span class="text-xs font-semibold text-primary">${gitlabAPI.formatDuration(
+						log.timeSpent
+					)}</span>
         </div>
         
         ${log.summary ? `<p class="text-sm">${escapeHtml(log.summary)}</p>` : ""}
@@ -1077,5 +1420,7 @@ export function initializeEventHandlers() {
 		handleNewLogSubmit,
 		handleDeleteTimelog,
 		changePeriod,
+		showIssuesList,
+		showIssueDetail,
 	});
 }

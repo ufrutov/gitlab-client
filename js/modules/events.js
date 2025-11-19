@@ -19,6 +19,8 @@ export function initializeEventHandlers(app) {
 		hideNewLogModal,
 		handleNewLogSubmit,
 		handleDeleteTimelog,
+		showIssuesList,
+		showIssueDetail,
 	} = app || {};
 
 	// Handle login form submission
@@ -238,6 +240,10 @@ export function initializeEventHandlers(app) {
 	const backToProjects = document.getElementById("backToProjects");
 	if (backToProjects && showProjectsList)
 		backToProjects.addEventListener("click", showProjectsList);
+
+	// Handle back to issues button
+	const backToIssues = document.getElementById("backToIssues");
+	if (backToIssues && showIssuesList) backToIssues.addEventListener("click", showIssuesList);
 
 	// Handle refresh time logs button
 	const refreshTimeLogs = document.getElementById("refreshTimeLogs");

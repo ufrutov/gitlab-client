@@ -366,14 +366,7 @@ export class GitLabAPI {
 							description
 							dueDate
 							startDate
-							webUrl
 							state
-						}
-						timeStats {
-							timeEstimate
-							totalTimeSpent
-							humanTimeEstimate
-							humanTotalTimeSpent
 						}
 						timelogs {
 							nodes {
@@ -678,7 +671,6 @@ export class GitLabAPI {
 
 		return parts.length > 0 ? parts.join(" ") : "0m";
 	}
-
 	/**
 	 * Search across GitLab (projects, issues, merge requests, etc.)
 	 * @param {string} search - Search term
@@ -753,6 +745,25 @@ function getDefaultInstance() {
 export function reinitializeGitLabAPI() {
 	instance = new GitLabAPI(getDefaultBase());
 	return instance;
+}
+
+/**
+ * Format duration in seconds to human-readable string
+ * Exported as a standalone utility function for convenience
+ * @param {number} seconds - Duration in seconds
+ * @returns {string} - Formatted duration (e.g., "2h 30m")
+ */
+export function formatDuration(seconds) {
+	if (!seconds || seconds < 0) return "0m";
+
+	const hours = Math.floor(seconds / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+
+	const parts = [];
+	if (hours > 0) parts.push(`${hours}h`);
+	if (minutes > 0) parts.push(`${minutes}m`);
+
+	return parts.length > 0 ? parts.join(" ") : "0m";
 }
 
 // Export a proxy that delegates all calls to the current instance

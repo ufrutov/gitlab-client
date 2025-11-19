@@ -11,6 +11,7 @@
 			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 		/>
 		<link rel="icon" type="image/x-icon" href="https://about.gitlab.com/images/ico/favicon.ico" />
+		<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 		<script src="./js/tailwind.theme.js"></script>
 		<style>
 			* {
@@ -35,6 +36,106 @@
 			}
 			.sidebar.collapsed .sidebar-title {
 				justify-content: center;
+			}
+			/* Markdown prose styling */
+			.markdown-content {
+				line-height: 1.6;
+			}
+			.markdown-content h1,
+			.markdown-content h2,
+			.markdown-content h3,
+			.markdown-content h4,
+			.markdown-content h5,
+			.markdown-content h6 {
+				font-weight: 600;
+				margin-top: 1em;
+				margin-bottom: 0.5em;
+			}
+			.markdown-content h1 {
+				font-size: 1.5em;
+			}
+			.markdown-content h2 {
+				font-size: 1.3em;
+			}
+			.markdown-content h3 {
+				font-size: 1.1em;
+			}
+			.markdown-content p {
+				margin-bottom: 0.75em;
+			}
+			.markdown-content ul,
+			.markdown-content ol {
+				margin-left: 1.5em;
+				margin-bottom: 0.75em;
+			}
+			.markdown-content ul {
+				list-style-type: disc;
+			}
+			.markdown-content ol {
+				list-style-type: decimal;
+			}
+			.markdown-content li {
+				margin-bottom: 0.25em;
+			}
+			.markdown-content code {
+				background-color: rgba(0, 0, 0, 0.05);
+				padding: 0.2em 0.4em;
+				border-radius: 3px;
+				font-family: "Courier New", monospace;
+				font-size: 0.9em;
+			}
+			.dark .markdown-content code {
+				background-color: rgba(255, 255, 255, 0.1);
+			}
+			.markdown-content pre {
+				background-color: rgba(0, 0, 0, 0.05);
+				padding: 1em;
+				border-radius: 5px;
+				overflow-x: auto;
+				margin-bottom: 0.75em;
+			}
+			.dark .markdown-content pre {
+				background-color: rgba(255, 255, 255, 0.05);
+			}
+			.markdown-content pre code {
+				background-color: transparent;
+				padding: 0;
+			}
+			.markdown-content blockquote {
+				border-left: 3px solid var(--border);
+				padding-left: 1em;
+				margin: 0.75em 0;
+				color: var(--muted-foreground);
+			}
+			.markdown-content a {
+				color: var(--primary);
+				text-decoration: underline;
+			}
+			.markdown-content a:hover {
+				opacity: 0.8;
+			}
+			.markdown-content hr {
+				border: none;
+				border-top: 1px solid var(--border);
+				margin: 1em 0;
+			}
+			.markdown-content table {
+				border-collapse: collapse;
+				width: 100%;
+				margin-bottom: 0.75em;
+			}
+			.markdown-content th,
+			.markdown-content td {
+				border: 1px solid var(--border);
+				padding: 0.5em;
+				text-align: left;
+			}
+			.markdown-content th {
+				background-color: rgba(0, 0, 0, 0.03);
+				font-weight: 600;
+			}
+			.dark .markdown-content th {
+				background-color: rgba(255, 255, 255, 0.03);
 			}
 		</style>
 	</head>
@@ -250,6 +351,17 @@
 												<i class="fas fa-chevron-right text-muted-foreground text-xs"></i>
 												<span class="font-semibold">Issues</span>
 											</div>
+
+											<div id="issueBreadcrumb" class="hidden flex items-center gap-2 text-lg">
+												<button
+													id="backToIssues"
+													class="text-primary hover:text-primary/80 font-medium flex items-center gap-2"
+												>
+													<span id="issueBreadcrumbProjectName" class="font-semibold"></span>
+												</button>
+												<i class="fas fa-chevron-right text-muted-foreground text-xs"></i>
+												<span class="font-semibold" id="issueBreadcrumbIssueNumber">#0</span>
+											</div>
 										</div>
 										<button
 											id="refreshProjects"
@@ -335,6 +447,36 @@
 											class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"
 										>
 											<!-- Issues will be dynamically inserted here -->
+										</div>
+									</div>
+
+									<!-- Single Issue View -->
+									<div id="issueDetailView" class="hidden">
+										<!-- Loading State -->
+										<div id="issueDetailLoading" class="hidden text-center py-12">
+											<i
+												class="fas fa-circle-notch fa-spin text-3xl text-muted-foreground mb-3"
+											></i>
+											<p class="text-muted-foreground">Loading issue details...</p>
+										</div>
+
+										<!-- Error State -->
+										<div
+											id="issueDetailError"
+											class="hidden bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4"
+										>
+											<div class="flex items-start gap-3">
+												<i class="fas fa-exclamation-circle text-destructive mt-0.5"></i>
+												<div class="flex-1">
+													<h3 class="font-medium text-destructive mb-1">Error loading issue</h3>
+													<p class="text-sm text-destructive/80" id="issueDetailErrorMessage"></p>
+												</div>
+											</div>
+										</div>
+
+										<!-- Issue Detail Content -->
+										<div id="issueDetailContent" class="hidden space-y-4">
+											<!-- Issue info will be dynamically inserted here -->
 										</div>
 									</div>
 								</div>
