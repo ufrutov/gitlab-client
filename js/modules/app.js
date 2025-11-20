@@ -21,6 +21,11 @@ import {
 	showError,
 	hideError,
 } from "./auth.js";
+import {
+	initializeSearchInputs,
+	initializeSearchEventListeners,
+	setTimeLogsData,
+} from "./search.js";
 
 // Re-export auth helpers so external modules (and index.html) can import them
 export {
@@ -37,6 +42,26 @@ export {
 // of the month for the selected period. Defaults to current month.
 let currentPeriod = new Date();
 currentPeriod = new Date(currentPeriod.getFullYear(), currentPeriod.getMonth(), 1);
+
+// Helper to get current period (for search module)
+export function getCurrentPeriod() {
+	return currentPeriod;
+}
+
+// Helper to get week key from date (for search module)
+export function getWeekKey(date) {
+	// Get the start of the week (Monday)
+	const d = new Date(date);
+	d.setHours(0, 0, 0, 0);
+	const day = d.getDay();
+	// Calculate days to subtract to get to Monday
+	// Sunday = 0, Monday = 1, Tuesday = 2, ..., Saturday = 6
+	// Days to go back: Sunday = 6, Monday = 0, Tuesday = 1, ..., Saturday = 5
+	const daysToSubtract = day === 0 ? 6 : day - 1;
+	const monday = new Date(d);
+	monday.setDate(d.getDate() - daysToSubtract);
+	return monday.toISOString().split("T")[0];
+}
 
 // Pagination state for issues
 let issuesPagination = {
@@ -286,6 +311,10 @@ export async function showProjectIssues(projectFullPath, projectName) {
 	document.getElementById("projectsListView").classList.add("hidden");
 	document.getElementById("issuesListView").classList.remove("hidden");
 
+	// Hide projects search, show issues search
+	document.getElementById("projectsSearchContainer").classList.add("hidden");
+	document.getElementById("issuesSearchContainer").classList.remove("hidden");
+
 	// Update header
 	document.getElementById("projectsTitle").classList.add("hidden");
 	document.getElementById("projectsBreadcrumb").classList.remove("hidden");
@@ -299,6 +328,10 @@ export function showProjectsList() {
 	// Show projects list, hide issues list
 	document.getElementById("projectsListView").classList.remove("hidden");
 	document.getElementById("issuesListView").classList.add("hidden");
+
+	// Show projects search, hide issues search
+	document.getElementById("projectsSearchContainer").classList.remove("hidden");
+	document.getElementById("issuesSearchContainer").classList.add("hidden");
 
 	// Update header
 	document.getElementById("projectsTitle").classList.remove("hidden");
@@ -939,6 +972,9 @@ export async function loadTimeLogs(periodDate, force = false) {
 
 		timeLogsLoading.classList.add("hidden");
 
+		// Store all time logs for search filtering
+		setTimeLogsData(nodes);
+
 		// Populate calendar with time logs data for this period
 		populateTrackCalendar(nodes, currentPeriod);
 
@@ -992,20 +1028,6 @@ export function changePeriod(offsetMonths) {
 	loadTimeLogs(currentPeriod);
 }
 
-function getWeekKey(date) {
-	// Get the start of the week (Monday)
-	const d = new Date(date);
-	d.setHours(0, 0, 0, 0);
-	const day = d.getDay();
-	// Calculate days to subtract to get to Monday
-	// Sunday = 0, Monday = 1, Tuesday = 2, ..., Saturday = 6
-	// Days to go back: Sunday = 6, Monday = 0, Tuesday = 1, ..., Saturday = 5
-	const daysToSubtract = day === 0 ? 6 : day - 1;
-	const monday = new Date(d);
-	monday.setDate(d.getDate() - daysToSubtract);
-	return monday.toISOString().split("T")[0];
-}
-
 function groupTimeLogsByWeek(timeLogs, periodDate) {
 	const weeks = {};
 	let total = 0;
@@ -1055,7 +1077,7 @@ function groupTimeLogsByWeek(timeLogs, periodDate) {
 	return Object.values(weeks).sort((a, b) => b.weekStart - a.weekStart);
 }
 
-function createWeekContainer(weekGroup, sortedDays) {
+export function createWeekContainer(weekGroup, sortedDays, createTimeLogCardFn, attachClickFn) {
 	const weekStart = new Date(weekGroup.weekStart);
 	const weekEnd = new Date(weekStart.getTime());
 	weekEnd.setDate(weekEnd.getDate() + 6);
@@ -1110,7 +1132,11 @@ function createWeekContainer(weekGroup, sortedDays) {
 
 	// Add all day containers
 	sortedDays.forEach((dayGroup) => {
-		const dayContainer = createDayContainer(dayGroup);
+		const dayContainer = createDayContainer(
+			dayGroup,
+			createTimeLogCardFn || createTimeLogCard,
+			attachClickFn || _attachTimeLogCardClick
+		);
 		daysContainer.appendChild(dayContainer);
 	});
 
@@ -1119,7 +1145,7 @@ function createWeekContainer(weekGroup, sortedDays) {
 	return container;
 }
 
-function createDayContainer(dayGroup) {
+export function createDayContainer(dayGroup, createTimeLogCard, _attachTimeLogCardClick) {
 	const dayDate = new Date(dayGroup.date);
 	const now = new Date();
 	now.setHours(0, 0, 0, 0);
@@ -1167,7 +1193,9 @@ function createDayContainer(dayGroup) {
 		const logCard = createTimeLogCard(log);
 		logsContainer.appendChild(logCard);
 		// Attach click handler to open delete modal
-		_attachTimeLogCardClick(logCard, log);
+		if (_attachTimeLogCardClick) {
+			_attachTimeLogCardClick(logCard, log);
+		}
 	});
 
 	container.appendChild(logsContainer);
@@ -1291,7 +1319,7 @@ function populateTrackCalendar(timeLogs, periodDate) {
 	}
 }
 
-function createTimeLogCard(log, showUser = true) {
+export function createTimeLogCard(log, showUser = true) {
 	const card = document.createElement("div");
 	card.className = "bg-card border rounded-lg p-3 hover:shadow-md transition-shadow";
 
@@ -1422,5 +1450,22 @@ export function initializeEventHandlers() {
 		changePeriod,
 		showIssuesList,
 		showIssueDetail,
+	});
+
+	// Initialize search event listeners with required dependencies
+	initializeSearchEventListeners({
+		loadProjects,
+		loadIssues,
+		loadTimeLogs,
+		createProjectCard,
+		createIssueCard,
+		createTimeLogCard,
+		formatDate,
+		favorites,
+		getCurrentPeriod,
+		getWeekKey,
+		createWeekContainer,
+		createDayContainer,
+		_attachTimeLogCardClick,
 	});
 }

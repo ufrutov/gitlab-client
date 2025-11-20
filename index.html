@@ -137,6 +137,16 @@
 			.dark .markdown-content th {
 				background-color: rgba(255, 255, 255, 0.03);
 			}
+			/* Search input expand animation */
+			.search-expanded {
+				display: block !important;
+				width: 200px !important;
+				opacity: 1 !important;
+			}
+			.search-button-active {
+				background-color: var(--accent);
+				color: var(--accent-foreground);
+			}
 		</style>
 	</head>
 
@@ -145,8 +155,27 @@
 			<!-- Auth Form -->
 			<div id="authForm" class="bg-card rounded-lg border shadow-sm p-6">
 				<div class="space-y-2 mb-6">
-					<h2 class="text-2xl font-semibold tracking-tight">Welcome back</h2>
-					<p class="text-sm text-muted-foreground">Enter your credentials to access your account</p>
+					<div class="flex items-start">
+						<div class="flex flex-col gap-1">
+							<h2 class="text-2xl font-semibold tracking-tight">Welcome back</h2>
+							<p class="text-sm text-muted-foreground">
+								Enter your credentials to access your account
+							</p>
+						</div>
+
+						<div class="flex flex-col items-center justify-end relative -right-5">
+							<a href="https://docs.gitlab.com/api/graphql" target="_blank">
+								<img
+									src="https://about.gitlab.com/images/press/gitlab-logo-300-rgb.svg"
+									class="mx-auto -my-2 h-10 dark:hidden"
+								/>
+								<img
+									src="https://about.gitlab.com/images/press/gitlab-logo-400-rgb.svg"
+									class="mx-auto -my-2 h-10 hidden dark:block"
+								/>
+							</a>
+						</div>
+					</div>
 				</div>
 
 				<form id="loginForm" class="space-y-4">
@@ -254,7 +283,7 @@
 							</div>
 
 							<!-- Navigation Tabs -->
-							<nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+							<nav class="flex-1 flex flex-col p-3 space-y-1 overflow-y-auto">
 								<button
 									data-tab="projects"
 									class="tab-button w-full text-left px-2 py-2 rounded-md text-sm font-medium transition-colors text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-3"
@@ -313,6 +342,19 @@
 										</div>
 									</div>
 								</div>
+
+								<div class="flex flex-1 flex-col items-center justify-end">
+									<a href="https://docs.gitlab.com/api/graphql" target="_blank">
+										<img
+											src="https://about.gitlab.com/images/press/gitlab-logo-300-rgb.svg"
+											class="mx-auto -my-2 h-10 dark:hidden"
+										/>
+										<img
+											src="https://about.gitlab.com/images/press/gitlab-logo-400-rgb.svg"
+											class="mx-auto -my-2 h-10 hidden dark:block"
+										/>
+									</a>
+								</div>
 							</nav>
 							<!-- Action Button -->
 							<div class="p-3 border-t">
@@ -363,15 +405,54 @@
 												<span class="font-semibold" id="issueBreadcrumbIssueNumber">#0</span>
 											</div>
 										</div>
-										<button
-											id="refreshProjects"
-											class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
-											title="Refresh"
-										>
-											<i class="fas fa-sync-alt"></i>
-										</button>
+										<div class="flex items-center gap-2">
+											<!-- Projects Search Input with Expand/Collapse -->
+											<div
+												id="projectsSearchContainer"
+												class="flex items-center gap-2 transition-all duration-300"
+											>
+												<input
+													id="projectsSearchInput"
+													type="text"
+													placeholder="Search..."
+													class="hidden w-0 opacity-0 h-8 rounded-md border border-input bg-background px-3 py-1 text-sm transition-all duration-300"
+												/>
+												<button
+													id="projectsSearchToggle"
+													class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
+													title="Search"
+												>
+													<i class="fas fa-search"></i>
+												</button>
+											</div>
+											<!-- Issues Search Input with Expand/Collapse -->
+											<div
+												id="issuesSearchContainer"
+												class="hidden flex items-center gap-2 transition-all duration-300"
+											>
+												<input
+													id="issuesSearchInput"
+													type="text"
+													placeholder="Search..."
+													class="hidden w-0 opacity-0 h-8 rounded-md border border-input bg-background px-3 py-1 text-sm transition-all duration-300"
+												/>
+												<button
+													id="issuesSearchToggle"
+													class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
+													title="Search"
+												>
+													<i class="fas fa-search"></i>
+												</button>
+											</div>
+											<button
+												id="refreshProjects"
+												class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
+												title="Refresh"
+											>
+												<i class="fas fa-sync-alt"></i>
+											</button>
+										</div>
 									</div>
-
 									<!-- Projects List View -->
 									<div id="projectsListView">
 										<!-- Loading State -->
@@ -526,13 +607,34 @@
 											<div class="trackCalendarMonthTotal text-primary font-semibold text-sm"></div>
 										</div>
 
-										<button
-											id="refreshTimeLogs"
-											class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
-											title="Refresh"
-										>
-											<i class="fas fa-sync-alt"></i>
-										</button>
+										<div class="flex items-center gap-2">
+											<!-- Search Input with Expand/Collapse -->
+											<div
+												id="trackSearchContainer"
+												class="flex items-center gap-2 transition-all duration-300"
+											>
+												<input
+													id="trackSearchInput"
+													type="text"
+													placeholder="Search..."
+													class="hidden w-0 opacity-0 h-8 rounded-md border border-input bg-background px-3 py-1 text-sm transition-all duration-300"
+												/>
+												<button
+													id="trackSearchToggle"
+													class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
+													title="Search"
+												>
+													<i class="fas fa-search"></i>
+												</button>
+											</div>
+											<button
+												id="refreshTimeLogs"
+												class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground size-8"
+												title="Refresh"
+											>
+												<i class="fas fa-sync-alt"></i>
+											</button>
+										</div>
 									</div>
 
 									<!-- Loading State -->
@@ -682,6 +784,7 @@
 		<script type="module">
 			// Import application module
 			import { checkAuth, showLoginForm, initializeEventHandlers } from "./js/modules/app.js";
+			import { initializeSearchInputs } from "./js/modules/search.js";
 
 			// Initialize event handlers
 			initializeEventHandlers();
@@ -690,6 +793,21 @@
 			if (!checkAuth()) {
 				showLoginForm();
 			}
+
+			// Initialize search functionality with callbacks
+			// These will be connected to the actual search handlers in the app module
+			initializeSearchInputs({
+				onProjectsSearch: (searchTerm) => {
+					// Dispatch custom event that app.js can listen to
+					window.dispatchEvent(new CustomEvent("projectsSearch", { detail: { searchTerm } }));
+				},
+				onIssuesSearch: (searchTerm) => {
+					window.dispatchEvent(new CustomEvent("issuesSearch", { detail: { searchTerm } }));
+				},
+				onTimeLogsSearch: (searchTerm) => {
+					window.dispatchEvent(new CustomEvent("timeLogsSearch", { detail: { searchTerm } }));
+				},
+			});
 		</script>
 	</body>
 </html>
