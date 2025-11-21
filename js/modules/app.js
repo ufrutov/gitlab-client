@@ -1389,7 +1389,13 @@ ${
 					)}</span>
         </div>
         
-        ${log.summary ? `<p class="text-sm">${escapeHtml(log.summary)}</p>` : ""}
+        ${
+					log.summary
+						? `<p class="text-sm">${escapeHtml(log.summary)}</p>`
+						: log.note.body
+						? `<p class="text-sm">${escapeHtml(log.note.body)}</p>`
+						: ""
+				}
         
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
           ${

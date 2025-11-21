@@ -70,7 +70,9 @@ export async function openDeleteTimelogModal(log) {
 	}
 
 	if (durationInput) durationInput.value = log.timeSpentHuman || "";
-	if (summaryEl) summaryEl.value = log.summary || "";
+	if (summaryEl) {
+		summaryEl.value = log.summary || log.note.body || "";
+	}
 
 	// Show delete button, hide submit
 	if (submitBtn) submitBtn.classList.add("hidden");
@@ -350,8 +352,20 @@ export async function handleNewLogSubmit(e) {
 	const duration = durationInput && durationInput.length > 0 ? durationInput : "1h";
 
 	try {
-		// Call addSpentTime(projectId, issueIid, duration, summary)
-		await gitlabAPI.addSpentTime(project, issueIid, duration, summary);
+		// Check if the date is today
+		const today = new Date();
+		const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
+			2,
+			"0"
+		)}-${String(today.getDate()).padStart(2, "0")}`;
+		const isToday = date === todayStr;
+
+		// Use addSpentTimeAtDate if not today, otherwise use addSpentTime
+		if (!isToday && date) {
+			await gitlabAPI.addSpentTimeAtDate(project, issueIid, duration, date, summary);
+		} else {
+			await gitlabAPI.addSpentTime(project, issueIid, duration, summary);
+		}
 		hideNewLogModal();
 		// Clear timelogs cache for the period of the added entry
 		try {

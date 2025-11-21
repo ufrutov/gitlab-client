@@ -446,6 +446,67 @@ export class GitLabAPI {
 	}
 
 	/**
+	 * Add spent time to an issue at a specific date
+	 * Uses the "Create a new issue note" endpoint with /spend quick action and custom date
+	 * @param {string} projectId - Project ID (numeric or encoded)
+	 * @param {string} issueIid - Issue internal ID
+	 * @param {string} duration - Duration string (e.g., '1h', '30m', '2h30m')
+	 * @param {string} spentAt - Date when the time was spent (YYYY-MM-DD format, e.g., '2025-11-21')
+	 * @param {string} summary - Summary of work done (optional)
+	 * @returns {Promise<Object>} - Response data
+	 */
+	async addSpentTimeAtDate(projectId, issueIid, duration, spentAt, summary = "") {
+		const token = this.getToken();
+		if (!token) {
+			throw new Error("No authentication token found. Please login first.");
+		}
+
+		if (!spentAt) {
+			throw new Error("spentAt date is required");
+		}
+
+		let noteBody = "";
+
+		// Add summary as regular text after the quick action if provided
+		if (summary) {
+			noteBody += `${summary}\n`;
+		}
+
+		// Construct the note body with /spend quick action and date
+		// Format: /spend 1h 2025-11-20
+		noteBody += `/spend ${duration} ${spentAt}`;
+
+		const url = `${this.restApiUrl}/projects/${encodeURIComponent(
+			projectId
+		)}/issues/${issueIid}/notes`;
+
+		try {
+			const response = await fetch(url, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"PRIVATE-TOKEN": token,
+				},
+				body: JSON.stringify({
+					body: noteBody,
+				}),
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(
+					`HTTP error! status: ${response.status} - ${response.statusText}. ${errorText}`
+				);
+			}
+
+			return await response.json();
+		} catch (error) {
+			console.error("Error adding spent time at date:", error);
+			throw error;
+		}
+	}
+
+	/**
 	 * Delete a timelog entry
 	 * Uses GraphQL mutation `timelogDelete`.
 	 * @param {string} timelogId - The global ID (GraphQL ID) of the timelog to delete
@@ -546,6 +607,9 @@ export class GitLabAPI {
             timeSpent
             spentAt
             summary
+						note {
+							body
+						}
             user {
               id
               name
