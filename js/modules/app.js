@@ -328,6 +328,7 @@ export function showProjectsList() {
 	// Show projects list, hide issues list
 	document.getElementById("projectsListView").classList.remove("hidden");
 	document.getElementById("issuesListView").classList.add("hidden");
+	document.getElementById("issueBreadcrumb").classList.add("hidden");
 
 	// Show projects search, hide issues search
 	document.getElementById("projectsSearchContainer").classList.remove("hidden");
@@ -1392,7 +1393,7 @@ ${
         ${
 					log.summary
 						? `<p class="text-sm">${escapeHtml(log.summary)}</p>`
-						: log.note.body
+						: log.note && log.note.body
 						? `<p class="text-sm">${escapeHtml(log.note.body)}</p>`
 						: ""
 				}

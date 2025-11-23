@@ -34,6 +34,12 @@ tailwind.config = {
 					DEFAULT: "var(--card)",
 					foreground: "var(--card-foreground)",
 				},
+				gitlab: {
+					charcoal: "#171321",
+					"orange-1": "#FCA326",
+					orange: "#FC6D26",
+					"orange-3": "#E24329",
+				},
 			},
 			borderRadius: {
 				lg: "0.5rem",

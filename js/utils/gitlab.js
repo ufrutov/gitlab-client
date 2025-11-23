@@ -373,6 +373,9 @@ export class GitLabAPI {
 								timeSpent
 								spentAt
 								summary
+								note {
+									body
+								}
 								user {
 									id
 									name

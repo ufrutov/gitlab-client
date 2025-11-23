@@ -236,7 +236,17 @@ export function initializeEventHandlers(app) {
 		});
 	}
 
-	// Handle back to projects button
+	// Handle back to projects list button (from issues breadcrumb)
+	const backToProjectsList = document.getElementById("backToProjectsList");
+	if (backToProjectsList && showProjectsList)
+		backToProjectsList.addEventListener("click", showProjectsList);
+
+	// Handle back to projects list button (from issue detail breadcrumb)
+	const backToProjectsListFromIssue = document.getElementById("backToProjectsListFromIssue");
+	if (backToProjectsListFromIssue && showProjectsList)
+		backToProjectsListFromIssue.addEventListener("click", showProjectsList);
+
+	// Handle back to projects button (shows issues list)
 	const backToProjects = document.getElementById("backToProjects");
 	if (backToProjects && showProjectsList)
 		backToProjects.addEventListener("click", showProjectsList);
