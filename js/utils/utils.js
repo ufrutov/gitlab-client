@@ -18,8 +18,10 @@ export function escapeHtml(text) {
  * @param {string} dateString - The ISO date string to format
  * @returns {string} - Human-readable relative time (e.g., "2 days ago")
  */
-export function formatDate(dateString, readable = false) {
+export function formatDate(dateString, readable = false, format = null) {
 	const date = new Date(dateString);
+
+	if (isNaN(date.getTime())) return "";
 
 	if (!readable) {
 		const day = String(date.getDate()).padStart(2, "0");
@@ -27,6 +29,21 @@ export function formatDate(dateString, readable = false) {
 		const year = date.getFullYear();
 		const hours = String(date.getHours()).padStart(2, "0");
 		const minutes = String(date.getMinutes()).padStart(2, "0");
+
+		// If an explicit format was provided, replace tokens:
+		// 'dd' -> day, 'mm' -> month, 'yyyy' -> full year
+		// 'HH' -> hours, 'MM' -> minutes (note: 'MM' is minutes to avoid colliding with 'mm' month)
+		if (format && typeof format === "string") {
+			let out = String(format);
+			out = out.replace(/yyyy/g, year);
+			out = out.replace(/dd/g, day);
+			out = out.replace(/mm/g, month);
+			out = out.replace(/HH/g, hours);
+			out = out.replace(/MM/g, minutes);
+			return out;
+		}
+
+		// Default (legacy) behaviour: include date and time
 		return `${day}/${month}/${year} ${hours}:${minutes}`;
 	}
 

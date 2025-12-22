@@ -1,5 +1,5 @@
 import gitlabAPI from "../utils/gitlab.js";
-import { escapeHtml } from "../utils/utils.js";
+import { escapeHtml, formatDate } from "../utils/utils.js";
 import store from "../utils/store.js";
 import * as favorites from "../utils/favorites.js";
 
@@ -157,7 +157,17 @@ export async function openDeleteTimelogModal(log) {
 	// Update modal title to Edit when in delete mode
 	if (modal) {
 		const titleEl = modal.querySelector("h3");
-		if (titleEl) titleEl.textContent = "Edit Time Log";
+		if (titleEl) {
+			titleEl.innerHTML = `Time Log at <span class="text-bold border-b-2 border-black border-dotted">${formatDate(
+				log.spentAt,
+				false,
+				"dd/mm/yyyy"
+			)}</span> for <a href="${
+				log.issue.webUrl
+			}" target="_blank" class="text-blue-500 hover:text-blue-600" title="${
+				log.issue.title || ""
+			}">#${log.issue.iid}</a>`;
+		}
 		modal.classList.remove("hidden");
 	}
 }

@@ -1129,7 +1129,7 @@ export function createWeekContainer(weekGroup, sortedDays, createTimeLogCardFn, 
 
 	// Create days container
 	const daysContainer = document.createElement("div");
-	daysContainer.className = "grid md:grid-cols-2 lg:grid-cols-5 gap-2";
+	daysContainer.className = "grid md:grid-cols-1 lg:grid-cols-5 gap-2";
 
 	// Add all day containers
 	sortedDays.forEach((dayGroup) => {
@@ -1172,7 +1172,7 @@ export function createDayContainer(dayGroup, createTimeLogCard, _attachTimeLogCa
 	// Create day header
 	const header = document.createElement("div");
 	header.className =
-		"flex items-center justify-between py-2 px-3 bg-primary text-primary-foreground rounded-md";
+		"flex items-center justify-between py-2 px-3 bg-primary text-primary-foreground rounded-md z-[1]";
 	header.innerHTML = `
 		<div class="flex items-center gap-2">
 			<h4 class="font-medium text-xs">${dayLabel}</h4>
@@ -1187,7 +1187,7 @@ export function createDayContainer(dayGroup, createTimeLogCard, _attachTimeLogCa
 
 	// Create logs container
 	const logsContainer = document.createElement("div");
-	logsContainer.className = "flex flex-col gap-2";
+	logsContainer.className = "p-1.5 pt-5 -mt-5 rounded-xl border border-t-0 flex flex-col gap-2";
 
 	// Add all logs for this day
 	dayGroup.logs.forEach((log) => {
