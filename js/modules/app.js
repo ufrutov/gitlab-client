@@ -1129,7 +1129,7 @@ export function createWeekContainer(weekGroup, sortedDays, createTimeLogCardFn, 
 
 	// Create days container
 	const daysContainer = document.createElement("div");
-	daysContainer.className = "grid md:grid-cols-1 lg:grid-cols-5 gap-2";
+	daysContainer.className = "flex flex-col flex-col-reverse lg:grid lg:grid-cols-5 gap-2";
 
 	// Add all day containers
 	sortedDays.forEach((dayGroup) => {
