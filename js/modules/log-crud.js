@@ -173,6 +173,63 @@ export async function openDeleteTimelogModal(log) {
 }
 
 /**
+ * Open a read-only view modal for a given timelog object.
+ */
+export function openViewLogModal(log) {
+	if (!log) return;
+	_currentTimelogId = log.id;
+
+	const dateEl = document.getElementById("viewLogDate");
+	const durationEl = document.getElementById("viewLogDuration");
+	const issueLink = document.getElementById("viewLogIssueLink");
+	const summaryEl = document.getElementById("viewLogSummary");
+	const titleEl = document.getElementById("viewLogTitle");
+
+	try {
+		if (dateEl) dateEl.textContent = formatDate(log.spentAt, false, "dd/mm/yyyy");
+	} catch (e) {
+		if (dateEl) dateEl.textContent = String(log.spentAt || "");
+	}
+
+	if (durationEl) durationEl.textContent = log.timeSpentHuman || "";
+
+	if (issueLink) {
+		const iid = log.issue && log.issue.iid ? log.issue.iid : "";
+		const title = log.issue && log.issue.title ? log.issue.title : "";
+		const webUrl = log.issue && log.issue.webUrl ? log.issue.webUrl : "#";
+		issueLink.textContent = iid ? `#${iid} - ${title}` : title || "";
+		issueLink.href = webUrl;
+		issueLink.title = title || "";
+		// Store iid and title as data attributes for clipboard formatting
+		issueLink.setAttribute("data-iid", String(iid));
+		issueLink.setAttribute("data-title", title || "");
+	}
+
+	if (summaryEl) summaryEl.textContent = log.summary || (log.note && log.note.body) || "";
+
+	if (titleEl && log.spentAt && log.issue) {
+		titleEl.innerHTML = `Time Log at <span class="text-bold border-b-2 border-black border-dotted">${formatDate(
+			log.spentAt,
+			false,
+			"dd/mm/yyyy"
+		)}</span> for <a href="${
+			log.issue.webUrl
+		}" target="_blank" class="text-blue-500 hover:text-blue-600" title="${escapeHtml(
+			log.issue.title || ""
+		)}">#${escapeHtml(String(log.issue.iid || ""))}</a>`;
+	}
+
+	const modal = document.getElementById("viewLogModal");
+	if (modal) modal.classList.remove("hidden");
+}
+
+export function hideViewLogModal() {
+	const modal = document.getElementById("viewLogModal");
+	if (modal) modal.classList.add("hidden");
+	_currentTimelogId = null;
+}
+
+/**
  * Handle delete button click; expects to be called by an event handler.
  */
 export async function handleDeleteTimelog(e) {
@@ -401,4 +458,6 @@ export default {
 	hideNewLogModal,
 	populateNewLogIssues,
 	handleNewLogSubmit,
+	openViewLogModal,
+	hideViewLogModal,
 };

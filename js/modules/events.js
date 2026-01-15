@@ -17,6 +17,7 @@ export function initializeEventHandlers(app) {
 		showNewLogModal,
 		populateNewLogIssues,
 		hideNewLogModal,
+		hideViewLogModal,
 		handleNewLogSubmit,
 		handleDeleteTimelog,
 		showIssuesList,
@@ -206,6 +207,21 @@ export function initializeEventHandlers(app) {
 		}
 	}
 
+	// View log modal overlay / cancel / delete bindings
+	const viewLogModalEl = document.getElementById("viewLogModal");
+	if (viewLogModalEl) {
+		const overlay = viewLogModalEl.querySelector("[aria-hidden='true']");
+		if (overlay) {
+			overlay.addEventListener("click", function () {
+				if (hideViewLogModal) {
+					hideViewLogModal();
+				} else {
+					viewLogModalEl.classList.add("hidden");
+				}
+			});
+		}
+	}
+
 	// Close the new log modal when Esc is pressed (only if modal is visible)
 	document.addEventListener("keydown", function (e) {
 		if (e.key === "Escape" || e.key === "Esc") {
@@ -218,8 +234,123 @@ export function initializeEventHandlers(app) {
 					modal.classList.add("hidden");
 				}
 			}
+
+			// Also close view modal if visible
+			const viewModal = document.getElementById("viewLogModal");
+			if (viewModal && !viewModal.classList.contains("hidden")) {
+				if (hideViewLogModal) {
+					hideViewLogModal();
+				} else {
+					viewModal.classList.add("hidden");
+				}
+			}
 		}
 	});
+
+	// Cancel / delete controls inside view modal
+	const viewCancelBtn = document.getElementById("viewLogCancelBtn");
+	if (viewCancelBtn && hideViewLogModal) viewCancelBtn.addEventListener("click", hideViewLogModal);
+
+	const viewDeleteBtn = document.getElementById("viewLogDeleteBtn");
+	if (viewDeleteBtn && handleDeleteTimelog)
+		viewDeleteBtn.addEventListener("click", handleDeleteTimelog);
+
+	// Copy issue link button in view modal
+	const viewCopyBtn = document.getElementById("viewLogCopyBtn");
+	if (viewCopyBtn) {
+		viewCopyBtn.addEventListener("click", async function (e) {
+			e.preventDefault();
+			const issueLink = document.getElementById("viewLogIssueLink");
+			if (!issueLink) return;
+			const url = issueLink.href || issueLink.getAttribute("data-href") || "";
+			if (!url) return;
+
+			// Build formatted string: `#<iid>: <title> (<url>)`
+			const iid = issueLink.getAttribute("data-iid") || "";
+			const title = issueLink.getAttribute("data-title") || issueLink.textContent || "";
+			const formatted = iid ? `#${iid}: ${title} (${url})` : `${title} (${url})`;
+
+			let copied = false;
+			try {
+				if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(formatted);
+					copied = true;
+				}
+			} catch (err) {
+				copied = false;
+			}
+
+			if (!copied) {
+				try {
+					const ta = document.createElement("textarea");
+					ta.value = formatted;
+					ta.style.position = "absolute";
+					ta.style.left = "-9999px";
+					document.body.appendChild(ta);
+					ta.select();
+					document.execCommand("copy");
+					document.body.removeChild(ta);
+					copied = true;
+				} catch (err) {
+					copied = false;
+				}
+			}
+
+			const icon = viewCopyBtn.querySelector("i");
+			if (!icon) return;
+			const originalClass = icon.className;
+			icon.className = "fas fa-check w-4 h-4";
+			setTimeout(() => {
+				icon.className = originalClass;
+			}, 3000);
+		});
+	}
+
+	// Copy summary button in view modal
+	const viewSummaryCopyBtn = document.getElementById("viewLogSummaryCopyBtn");
+	if (viewSummaryCopyBtn) {
+		viewSummaryCopyBtn.addEventListener("click", async function (e) {
+			e.preventDefault();
+			const summaryEl = document.getElementById("viewLogSummary");
+			if (!summaryEl) return;
+			const text = summaryEl.textContent || summaryEl.innerText || "";
+			if (!text) return;
+
+			let copied = false;
+			try {
+				if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(text);
+					copied = true;
+				}
+			} catch (err) {
+				copied = false;
+			}
+
+			if (!copied) {
+				try {
+					const ta = document.createElement("textarea");
+					ta.value = text;
+					ta.style.position = "absolute";
+					ta.style.left = "-9999px";
+					document.body.appendChild(ta);
+					ta.select();
+					document.execCommand("copy");
+					document.body.removeChild(ta);
+					copied = true;
+				} catch (err) {
+					copied = false;
+				}
+			}
+
+			const icon = viewSummaryCopyBtn.querySelector("i");
+			if (!icon) return;
+			const originalClass = icon.className;
+			icon.className = "fas fa-check w-4 h-4";
+			setTimeout(() => {
+				icon.className = originalClass;
+			}, 3000);
+		});
+	}
 
 	// Handle refresh projects button
 	const refreshProjects = document.getElementById("refreshProjects");

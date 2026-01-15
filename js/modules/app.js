@@ -8,6 +8,8 @@ import {
 	populateNewLogIssues,
 	handleNewLogSubmit,
 	openDeleteTimelogModal,
+	openViewLogModal,
+	hideViewLogModal,
 	handleDeleteTimelog,
 } from "./log-crud.js";
 
@@ -298,7 +300,7 @@ function _attachTimeLogCardClick(card, log) {
 	card.addEventListener("click", (e) => {
 		// If the user clicked a link inside the card, don't open modal
 		if (e.target.closest("a")) return;
-		openDeleteTimelogModal(log);
+		openViewLogModal(log);
 	});
 }
 
@@ -1452,6 +1454,7 @@ export function initializeEventHandlers() {
 		showNewLogModal,
 		populateNewLogIssues,
 		hideNewLogModal,
+		hideViewLogModal,
 		handleNewLogSubmit,
 		handleDeleteTimelog,
 		changePeriod,
