@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
@@ -693,11 +693,14 @@
 							</div>
 
 							<!-- New Log Modal -->
-							<div id="newLogModal" class="hidden fixed inset-0 z-50 items-center justify-center">
+							<div
+								id="newLogModal"
+								class="hidden fixed inset-0 z-50 h-full flex flex-col items-center justify-center"
+							>
 								<!-- Overlay -->
 								<div class="absolute inset-0 bg-black/40" aria-hidden="true"></div>
 								<!-- Modal -->
-								<div class="relative w-full flex items-center h-full max-w-lg mx-auto">
+								<div class="relative max-w-lg">
 									<div class="bg-card border rounded-lg p-5 z-10">
 										<h3 class="text-lg font-semibold mb-3">Add Time Log</h3>
 										<form id="newLogForm" class="flex flex-col gap-2">
@@ -799,11 +802,14 @@
 							</div>
 
 							<!-- View Log Modal (read-only) -->
-							<div id="viewLogModal" class="hidden fixed inset-0 z-50 items-center justify-center">
+							<div
+								id="viewLogModal"
+								class="hidden fixed inset-0 z-50 h-full flex flex-col items-center justify-center"
+							>
 								<!-- Overlay -->
 								<div class="absolute inset-0 bg-black/40" aria-hidden="true"></div>
 								<!-- Modal -->
-								<div class="relative w-full flex items-center h-full max-w-md mx-auto">
+								<div class="relative max-w-md">
 									<div class="bg-card border rounded-lg w-full p-5 z-10">
 										<h3 id="viewLogTitle" class="text-lg font-semibold mb-3">View Time Log</h3>
 										<div class="flex flex-col gap-2">
