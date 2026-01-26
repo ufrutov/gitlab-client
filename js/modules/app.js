@@ -1321,6 +1321,7 @@ function populateTrackCalendar(timeLogs, periodDate) {
 }
 
 export function createTimeLogCard(log, showUser = true) {
+	console.log(">>> [createTimeLogCard]", log);
 	const card = document.createElement("div");
 	card.className = "bg-card border rounded-lg p-3 hover:shadow-md transition-shadow";
 
@@ -1409,21 +1410,47 @@ ${
 					}
         </div>
 
-        <div class="flex items-center justify-between gap-2">
-					<a href="${log.issue.webUrl}" target="_blank" 
-						class="font-bold text-xs text-blue-500 hover:text-blue-600" 
-						title="#${log.issue.iid}: ${log.issue.title}">
-						#${log.issue.iid}
-						<i class="fas fa-external-link-alt text-xs"></i>
-					</a>
-					<span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
-						log.issue.state === "opened"
-							? "bg-green-100 text-green-800"
-							: "bg-purple-100 text-purple-800"
-					}">
-						${log.issue.state}
-					</span>
-        </div>
+        ${
+					log.issue
+						? `<div class="flex items-center justify-between gap-2">
+							<a href="${log.issue.webUrl}" target="_blank" 
+								class="font-bold text-xs text-blue-500 hover:text-blue-600" 
+								title="#${log.issue.iid}: ${log.issue.title}">
+								#${log.issue.iid}
+								<i class="fas fa-external-link-alt text-xs"></i>
+							</a>
+							<span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+								log.issue.state === "opened"
+									? "bg-green-100 text-green-800"
+									: "bg-purple-100 text-purple-800"
+							}">
+								${log.issue.state}
+							</span>
+						</div>`
+						: ""
+				}
+
+        ${
+					log.mergeRequest
+						? `<div class="flex items-center justify-between gap-2">
+							<a href="${log.mergeRequest.webUrl}" target="_blank" 
+								class="font-bold text-xs text-blue-500 hover:text-blue-600" 
+								title="!${log.mergeRequest.iid}: ${log.mergeRequest.title}">
+								MR!${log.mergeRequest.iid}
+								<i class="fas fa-external-link-alt text-xs"></i>
+							</a>
+							<span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+								log.mergeRequest.state === "merged"
+									? "bg-blue-100 text-blue-800"
+									: log.mergeRequest.state === "opened"
+										? "bg-green-100 text-green-800"
+										: "bg-purple-100 text-purple-800"
+							}">
+								${log.mergeRequest.state}
+							</span>
+						</div>`
+						: ""
+				}
       </div>
     </div>
   `;
