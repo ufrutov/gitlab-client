@@ -134,7 +134,7 @@ export async function openDeleteTimelogModal(log) {
 		const issueIid = log.issue.iid || "";
 		const issueTitle = log.issue.title || "";
 		issueSelect.innerHTML = `<option value="${escapeHtml(String(issueIid))}">#${escapeHtml(
-			String(issueIid)
+			String(issueIid),
 		)} - ${escapeHtml(issueTitle)}</option>`;
 	}
 
@@ -161,7 +161,7 @@ export async function openDeleteTimelogModal(log) {
 			titleEl.innerHTML = `Time Log at <span class="text-bold border-b-2 border-black border-dotted">${formatDate(
 				log.spentAt,
 				false,
-				"dd/mm/yyyy"
+				"dd/mm/yyyy",
 			)}</span> for <a href="${
 				log.issue.webUrl
 			}" target="_blank" class="text-blue-500 hover:text-blue-600" title="${
@@ -211,12 +211,12 @@ export function openViewLogModal(log) {
 		titleEl.innerHTML = `Time Log at <span class="text-bold border-b-2 border-black border-dotted">${formatDate(
 			log.spentAt,
 			false,
-			"dd/mm/yyyy"
+			"dd/mm/yyyy",
 		)}</span> for <a href="${
 			log.issue.webUrl
 		}" target="_blank" class="text-blue-500 hover:text-blue-600" title="${escapeHtml(
-			log.issue.title || ""
-		)}">#${escapeHtml(String(log.issue.iid || ""))}</a>`;
+			log.issue.title || "",
+		)}">#${escapeHtml(String(log.issue.iid || ""))}<i class="fas fa-external-link-alt ml-1"></i></a>`;
 	}
 
 	const modal = document.getElementById("viewLogModal");
@@ -387,8 +387,8 @@ export async function populateNewLogIssues(projectFullPath) {
 				.map(
 					(i) =>
 						`<option value="${escapeHtml(String(i.iid))}">#${escapeHtml(
-							String(i.iid)
-						)} - ${escapeHtml(i.title)}</option>`
+							String(i.iid),
+						)} - ${escapeHtml(i.title)}</option>`,
 				)
 				.join("");
 	} catch (err) {
@@ -423,7 +423,7 @@ export async function handleNewLogSubmit(e) {
 		const today = new Date();
 		const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
 			2,
-			"0"
+			"0",
 		)}-${String(today.getDate()).padStart(2, "0")}`;
 		const isToday = date === todayStr;
 

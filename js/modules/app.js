@@ -127,7 +127,7 @@ export function switchTab(tabName) {
 	activeButton.classList.remove(
 		"text-foreground",
 		"hover:bg-accent",
-		"hover:text-accent-foreground"
+		"hover:text-accent-foreground",
 	);
 }
 
@@ -504,8 +504,8 @@ function createIssueCard(issue) {
 				${
 					issue.description
 						? `<p class="text-sm text-muted-foreground line-clamp-2 break-words">${escapeHtml(
-								issue.description.substring(0, 150)
-						  )}${issue.description.length > 150 ? "..." : ""}</p>`
+								issue.description.substring(0, 150),
+							)}${issue.description.length > 150 ? "..." : ""}</p>`
 						: ""
 				}
 				<div class="mt-2 flex-1 flex items-center justify-start flex-wrap gap-1">
@@ -520,7 +520,7 @@ function createIssueCard(issue) {
 									label.color
 								}22; color: ${label.color};">
 							${escapeHtml(label.title)}
-						</span>`
+						</span>`,
 						)
 						.join("")}
 				</div>
@@ -531,7 +531,7 @@ function createIssueCard(issue) {
 							issue.author
 								? `<span class="flex items-center gap-1 font-medium" title="Author: ${
 										issue.author.name
-								  }">
+									}">
 										<i class="fas fa-user"></i>
 										<span class="font-normal">Author:</span>
 										${escapeHtml(issue.author.name)}
@@ -749,7 +749,7 @@ function createIssueDetailCard(issue, timeLogs) {
 							style="background-color: ${label.color}22; color: ${label.color};">
 							${escapeHtml(label.title)}
 						</span>
-					`
+					`,
 						)
 						.join("")}
 				</div>
@@ -767,8 +767,8 @@ function createIssueDetailCard(issue, timeLogs) {
 							${
 								issue.author.avatarUrl
 									? `<img src="${getFullAvatarUrl(
-											issue.author.avatarUrl
-									  )}" class="w-6 h-6 rounded-full" />`
+											issue.author.avatarUrl,
+										)}" class="w-6 h-6 rounded-full" />`
 									: ""
 							}
 							<span class="text-sm font-medium">${escapeHtml(issue.author.name)}</span>
@@ -790,13 +790,13 @@ function createIssueDetailCard(issue, timeLogs) {
 									${
 										assignee.avatarUrl
 											? `<img src="${getFullAvatarUrl(
-													assignee.avatarUrl
-											  )}" class="w-5 h-5 rounded-full" />`
+													assignee.avatarUrl,
+												)}" class="w-5 h-5 rounded-full" />`
 											: ""
 									}
 									<span class="text-sm">${escapeHtml(assignee.name)}</span>
 								</div>
-							`
+							`,
 								)
 								.join("")}
 						</div>
@@ -953,7 +953,7 @@ export async function loadTimeLogs(periodDate, force = false) {
 	try {
 		// periodKey in format YYYY-MM for caching
 		const periodKey = `${currentPeriod.getFullYear()}-${String(
-			currentPeriod.getMonth() + 1
+			currentPeriod.getMonth() + 1,
 		).padStart(2, "0")}`;
 
 		// Try cached unless force
@@ -1138,7 +1138,7 @@ export function createWeekContainer(weekGroup, sortedDays, createTimeLogCardFn, 
 		const dayContainer = createDayContainer(
 			dayGroup,
 			createTimeLogCardFn || createTimeLogCard,
-			attachClickFn || _attachTimeLogCardClick
+			attachClickFn || _attachTimeLogCardClick,
 		);
 		daysContainer.appendChild(dayContainer);
 	});
@@ -1227,14 +1227,12 @@ function populateTrackCalendar(timeLogs, periodDate) {
 		"November",
 		"December",
 	];
-	document.getElementById(
-		"trackCalendarMonthTitle"
-	).textContent = `${monthNames[currentMonth]} ${currentYear}`;
+	document.getElementById("trackCalendarMonthTitle").textContent =
+		`${monthNames[currentMonth]} ${currentYear}`;
 
 	// Update track content title with current month
-	document.getElementById(
-		"trackContentTitle"
-	).textContent = `${monthNames[currentMonth]} ${currentYear}`;
+	document.getElementById("trackContentTitle").textContent =
+		`${monthNames[currentMonth]} ${currentYear}`;
 
 	// Get first day of month and calculate starting position
 	const firstDay = new Date(currentYear, currentMonth, 1);
@@ -1388,7 +1386,7 @@ ${
         <div class="flex w-full items-center justify-between gap-2">
           <span class="text-xs text-muted-foreground">${formattedDate} ${formattedTime}</span>
           <span class="text-xs font-semibold text-primary">${gitlabAPI.formatDuration(
-						log.timeSpent
+						log.timeSpent,
 					)}</span>
         </div>
         
@@ -1396,8 +1394,8 @@ ${
 					log.summary
 						? `<p class="text-sm">${escapeHtml(log.summary)}</p>`
 						: log.note && log.note.body
-						? `<p class="text-sm">${escapeHtml(log.note.body)}</p>`
-						: ""
+							? `<p class="text-sm">${escapeHtml(log.note.body)}</p>`
+							: ""
 				}
         
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1411,22 +1409,20 @@ ${
 					}
         </div>
 
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <a href="${log.issue.webUrl}" target="_blank" 
-              class="font-bold text-xs text-blue-500 hover:text-blue-600" 
-              title="#${log.issue.iid}: ${log.issue.title}">
-              #${log.issue.iid}
-              <i class="fas fa-external-link-alt text-xs"></i>
-            </a>
-            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
-							log.issue.state === "opened"
-								? "bg-green-100 text-green-800"
-								: "bg-purple-100 text-purple-800"
-						}">
-              ${log.issue.state}
-            </span>
-          </div>
+        <div class="flex items-center justify-between gap-2">
+					<a href="${log.issue.webUrl}" target="_blank" 
+						class="font-bold text-xs text-blue-500 hover:text-blue-600" 
+						title="#${log.issue.iid}: ${log.issue.title}">
+						#${log.issue.iid}
+						<i class="fas fa-external-link-alt text-xs"></i>
+					</a>
+					<span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+						log.issue.state === "opened"
+							? "bg-green-100 text-green-800"
+							: "bg-purple-100 text-purple-800"
+					}">
+						${log.issue.state}
+					</span>
         </div>
       </div>
     </div>
