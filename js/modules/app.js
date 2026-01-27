@@ -1245,6 +1245,7 @@ function populateTrackCalendar(timeLogs, periodDate) {
 
 	// Create hours map from time logs
 	const hoursMap = {};
+	const logsMap = {};
 	timeLogs.forEach((log) => {
 		const spentDate = new Date(log.spentAt);
 		if (spentDate.getMonth() === currentMonth && spentDate.getFullYear() === currentYear) {
@@ -1254,6 +1255,7 @@ function populateTrackCalendar(timeLogs, periodDate) {
 			}
 			// Convert seconds to hours
 			hoursMap[dayKey] += log.timeSpent / 3600;
+			logsMap[dayKey] = log;
 		}
 	});
 
@@ -1281,6 +1283,7 @@ function populateTrackCalendar(timeLogs, periodDate) {
 	for (let day = 1; day <= daysInMonth; day++) {
 		const dayDiv = document.createElement("div");
 		dayDiv.className = "aspect-square";
+		const dayDate = new Date(ref).setDate(day);
 
 		const hours = hoursMap[day] || 0;
 		const isToday =
@@ -1289,17 +1292,25 @@ function populateTrackCalendar(timeLogs, periodDate) {
 			today.getFullYear() === currentYear;
 
 		let dayClasses =
-			"w-full h-full flex flex-col items-center justify-center font-mono text-xs leading-[0.8] rounded-sm border transition-all duration-200 cursor-pointer hover:shadow-md";
+			"relative w-full h-full flex flex-col items-center justify-center font-mono text-xs leading-[0.8] rounded-sm border transition-all duration-200 cursor-pointer hover:shadow-md";
+		let progressBgClass = "bg-orange-50";
+		let progressBarClass = "bg-orange-400";
 
 		if (isToday) {
 			dayClasses += " border-primary bg-primary text-primary-foreground font-bold";
 		} else if (hours > 0) {
 			if (hours >= 8) {
 				dayClasses += " border-green-400 bg-green-50 text-green-800";
+				progressBgClass = "bg-green-100";
+				progressBarClass = "bg-green-400";
 			} else if (hours >= 4) {
 				dayClasses += " border-yellow-400 bg-yellow-50 text-yellow-800";
+				progressBgClass = "bg-yellow-100";
+				progressBarClass = "bg-yellow-400";
 			} else {
 				dayClasses += " border-orange-400 bg-orange-50 text-orange-800";
+				progressBgClass = "bg-orange-100";
+				progressBarClass = "bg-orange-400";
 			}
 		} else {
 			dayClasses += " border-border bg-muted text-muted-foreground";
@@ -1308,11 +1319,15 @@ function populateTrackCalendar(timeLogs, periodDate) {
 		const hoursDisplay = hours > 0 ? `${hours.toFixed(1)}` : "";
 
 		dayDiv.innerHTML = `
-			<div class="${dayClasses}">
+			<div class="${dayClasses}" title="${formatDate(dayDate, false, "dd/mm/yyyy")}${hours > 0 ? ` | ${hoursDisplay}h` : ""}">
 				<div class="font-semibold">${day}</div>
-				<div class="text-[10px] tracking-tighter ${
-					hours > 0 ? "font-medium" : "text-muted-foreground"
-				}">${hoursDisplay}</div>
+				${
+					hours > 0
+						? `<div class="absolute bottom-0 w-full h-1 ${progressBgClass}">
+						<div class="h-full max-w-full ${progressBarClass}" style="width: ${(hours / 8) * 100}%"></div>
+					</div>`
+						: ""
+				}
 			</div>
 		`;
 
@@ -1321,7 +1336,6 @@ function populateTrackCalendar(timeLogs, periodDate) {
 }
 
 export function createTimeLogCard(log, showUser = true) {
-	console.log(">>> [createTimeLogCard]", log);
 	const card = document.createElement("div");
 	card.className = "bg-card border rounded-lg p-3 hover:shadow-md transition-shadow";
 
