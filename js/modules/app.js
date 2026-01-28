@@ -1293,8 +1293,8 @@ function populateTrackCalendar(timeLogs, periodDate) {
 
 		let dayClasses =
 			"relative w-full h-full flex flex-col items-center justify-center font-mono text-xs leading-[0.8] rounded-sm border transition-all duration-200 cursor-pointer hover:shadow-md";
-		let progressBgClass = "bg-orange-50";
-		let progressBarClass = "bg-orange-400";
+		let progressBgClass = "bg-primary rounded-sm";
+		let progressBarClass = "bg-primary-foreground rounded-sm";
 
 		if (isToday) {
 			dayClasses += " border-primary bg-primary text-primary-foreground font-bold";
