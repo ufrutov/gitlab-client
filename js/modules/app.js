@@ -370,33 +370,13 @@ export async function loadIssues(projectFullPath, force = false, append = false)
 	issuesLoading.classList.remove("hidden");
 
 	try {
-		let nodes = null;
-		let pageInfo = null;
-
-		// If not appending and not forcing, try cache
-		if (!append && !force) {
-			const cached = store.getIssues(projectFullPath);
-			if (cached && Array.isArray(cached) && cached.length > 0) {
-				nodes = cached;
-				// For cached data, we don't have pageInfo, so assume no next page
-				pageInfo = { hasNextPage: false, endCursor: null };
-			}
-		}
-
-		// If no cached data or appending, fetch from API
-		if (!nodes || append) {
-			const result = await gitlabAPI.listIssues(projectFullPath, {
-				first: 50,
-				after: append ? issuesPagination.endCursor : null,
-			});
-			nodes = result.nodes || [];
-			pageInfo = result.pageInfo || { hasNextPage: false, endCursor: null };
-
-			// If not appending, cache the first page
-			if (!append) {
-				store.storeIssues(projectFullPath, nodes);
-			}
-		}
+		// Always fetch from API (no cache)
+		const result = await gitlabAPI.listIssues(projectFullPath, {
+			first: 50,
+			after: append ? issuesPagination.endCursor : null,
+		});
+		const nodes = result.nodes || [];
+		const pageInfo = result.pageInfo || { hasNextPage: false, endCursor: null };
 
 		issuesLoading.classList.add("hidden");
 

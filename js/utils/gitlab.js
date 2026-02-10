@@ -216,7 +216,7 @@ export class GitLabAPI {
 	 */
 	async listIssues(projectPath, options = {}) {
 		const {
-			state = "opened",
+			state = "all",
 			first = 20,
 			after = null,
 			labels = null,
@@ -418,7 +418,7 @@ export class GitLabAPI {
 		}
 
 		let url = `${this.restApiUrl}/projects/${encodeURIComponent(
-			projectId
+			projectId,
 		)}/issues/${issueIid}/add_spent_time?duration=${encodeURIComponent(duration)}`;
 
 		if (summary) {
@@ -437,7 +437,7 @@ export class GitLabAPI {
 			if (!response.ok) {
 				const errorText = await response.text();
 				throw new Error(
-					`HTTP error! status: ${response.status} - ${response.statusText}. ${errorText}`
+					`HTTP error! status: ${response.status} - ${response.statusText}. ${errorText}`,
 				);
 			}
 
@@ -480,7 +480,7 @@ export class GitLabAPI {
 		noteBody += `/spend ${duration} ${spentAt}`;
 
 		const url = `${this.restApiUrl}/projects/${encodeURIComponent(
-			projectId
+			projectId,
 		)}/issues/${issueIid}/notes`;
 
 		try {
@@ -498,7 +498,7 @@ export class GitLabAPI {
 			if (!response.ok) {
 				const errorText = await response.text();
 				throw new Error(
-					`HTTP error! status: ${response.status} - ${response.statusText}. ${errorText}`
+					`HTTP error! status: ${response.status} - ${response.statusText}. ${errorText}`,
 				);
 			}
 
@@ -689,7 +689,7 @@ export class GitLabAPI {
 					headers: {
 						"PRIVATE-TOKEN": token,
 					},
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -712,7 +712,7 @@ export class GitLabAPI {
 							iid: log.issue.iid,
 							title: log.issue.title,
 							webUrl: log.issue.web_url,
-					  }
+						}
 					: null,
 			}));
 		} catch (error) {
@@ -754,13 +754,13 @@ export class GitLabAPI {
 		try {
 			const response = await fetch(
 				`${this.restApiUrl}/search?scope=${scope}&search=${encodeURIComponent(
-					search
+					search,
 				)}&per_page=${first}`,
 				{
 					headers: {
 						"PRIVATE-TOKEN": token,
 					},
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -843,5 +843,5 @@ export default new Proxy(
 			// Bind methods to the instance
 			return typeof value === "function" ? value.bind(currentInstance) : value;
 		},
-	}
+	},
 );

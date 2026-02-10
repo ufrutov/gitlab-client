@@ -54,7 +54,7 @@ async function searchIssues(projectFullPath, searchTerm) {
 		const issues = await gitlabAPI.listIssues(projectFullPath, {
 			search: searchTerm,
 			first: 50,
-			state: "opened",
+			state: "all",
 		});
 		return issues?.nodes || [];
 	} catch (error) {
@@ -189,19 +189,19 @@ export function initializeSearchInputs(callbacks = {}) {
 			"projectsSearchToggle",
 			"projectsSearchInput",
 			"projectsSearchContainer",
-			callbacks.onProjectsSearch
+			callbacks.onProjectsSearch,
 		);
 		initSearchToggle(
 			"issuesSearchToggle",
 			"issuesSearchInput",
 			"issuesSearchContainer",
-			callbacks.onIssuesSearch
+			callbacks.onIssuesSearch,
 		);
 		initSearchToggle(
 			"trackSearchToggle",
 			"trackSearchInput",
 			"trackSearchContainer",
-			callbacks.onTimeLogsSearch
+			callbacks.onTimeLogsSearch,
 		);
 	}, 100);
 }
@@ -268,7 +268,7 @@ export function initializeSearchEventListeners(dependencies) {
 			getWeekKey,
 			createWeekContainer,
 			createDayContainer,
-			_attachTimeLogCardClick
+			_attachTimeLogCardClick,
 		);
 	});
 }
@@ -399,7 +399,7 @@ async function handleTimeLogsSearch(
 	getWeekKey,
 	createWeekContainer,
 	createDayContainer,
-	_attachTimeLogCardClick
+	_attachTimeLogCardClick,
 ) {
 	// If search is empty, reload all time logs
 	if (!searchTerm || searchTerm.trim().length === 0) {
@@ -418,7 +418,7 @@ async function handleTimeLogsSearch(
 			getWeekKey,
 			createWeekContainer,
 			createDayContainer,
-			_attachTimeLogCardClick
+			_attachTimeLogCardClick,
 		);
 	}
 }
@@ -433,7 +433,7 @@ function displayFilteredTimeLogs(
 	getWeekKey,
 	createWeekContainer,
 	createDayContainer,
-	_attachTimeLogCardClick
+	_attachTimeLogCardClick,
 ) {
 	const timeLogsContainer = document.getElementById("timeLogsList");
 	const timeLogsLoading = document.getElementById("timeLogsLoading");
@@ -495,7 +495,7 @@ function displayFilteredTimeLogs(
 			weekGroup,
 			sortedDays,
 			createTimeLogCard,
-			_attachTimeLogCardClick
+			_attachTimeLogCardClick,
 		);
 
 		timeLogsContainer.appendChild(weekContainer);

@@ -353,19 +353,9 @@ export async function populateNewLogIssues(projectFullPath) {
 	if (!issueSelect) return;
 	issueSelect.innerHTML = `<option value="">Loading issues...</option>`;
 	try {
-		// Try cache first
-		let nodes =
-			store && typeof store.getIssues === "function" ? store.getIssues(projectFullPath) : null;
-		if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
-			const res = await gitlabAPI.listIssues(projectFullPath, { first: 100 });
-			nodes = res.nodes || [];
-			try {
-				if (store && typeof store.storeIssues === "function")
-					store.storeIssues(projectFullPath, nodes);
-			} catch (e) {
-				// ignore
-			}
-		}
+		// Always fetch from API (no cache)
+		const res = await gitlabAPI.listIssues(projectFullPath, { first: 100 });
+		const nodes = res.nodes || [];
 		if (nodes.length === 0) {
 			issueSelect.innerHTML = `<option value="">No issues found</option>`;
 			return;
@@ -388,7 +378,7 @@ export async function populateNewLogIssues(projectFullPath) {
 					(i) =>
 						`<option value="${escapeHtml(String(i.iid))}">#${escapeHtml(
 							String(i.iid),
-						)} - ${escapeHtml(i.title)}</option>`,
+						)} - ${escapeHtml(i.title)} (${i.state})</option>`,
 				)
 				.join("");
 	} catch (err) {
